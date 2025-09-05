@@ -1,0 +1,298 @@
+import React, { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
+import { Pokemon } from '@/types'
+import { PokemonDetailedData, pokemonApiService } from '@/services/pokemonApiService'
+import { clsx } from 'clsx'
+
+interface PokemonDexProps {
+  pokemon: Pokemon | null
+  isRevealed: boolean
+}
+
+const PokemonDex: React.FC<PokemonDexProps> = ({ pokemon, isRevealed }) => {
+  const [detailedData, setDetailedData] = useState<PokemonDetailedData | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [imageLoaded, setImageLoaded] = useState(false)
+
+  useEffect(() => {
+    if (pokemon && isRevealed) {
+      loadDetailedData()
+    }
+  }, [pokemon, isRevealed])
+
+  const loadDetailedData = async () => {
+    if (!pokemon) return
+    
+    setIsLoading(true)
+    try {
+      const data = await pokemonApiService.getPokemonDetailedData(pokemon.id)
+      setDetailedData(data)
+    } catch (error) {
+      console.error('Failed to load detailed Pokémon data:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  if (!pokemon) {
+    return (
+      <div className="w-full max-w-2xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
+        <div className="h-96 flex items-center justify-center">
+          <div className="text-gray-500 text-lg">Loading Pokémon...</div>
+        </div>
+      </div>
+    )
+  }
+
+  if (isLoading) {
+    return (
+      <div className="w-full max-w-2xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
+        <div className="h-96 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-pokemon-blue border-t-transparent mx-auto mb-4"></div>
+            <div className="text-gray-500 text-lg">Loading Pokédex data...</div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Use detailed data if available, otherwise fall back to basic pokemon data
+  const displayData = detailedData || {
+    id: pokemon.id,
+    name: pokemon.name,
+    description: 'No description available.',
+    height: pokemon.height,
+    weight: pokemon.weight,
+    abilities: pokemon.abilities,
+    stats: [
+      pokemon.stats.hp,
+      pokemon.stats.attack,
+      pokemon.stats.defense,
+      pokemon.stats.specialAttack,
+      pokemon.stats.specialDefense,
+      pokemon.stats.speed
+    ],
+    evolutionChain: {
+      id: pokemon.id,
+      name: pokemon.name,
+      sprite: pokemon.sprite,
+      evolvesTo: []
+    },
+    sprite: pokemon.sprite,
+    types: pokemon.types
+  }
+
+  const getTypeColor = (typeName: string) => {
+    const colors: Record<string, string> = {
+      normal: "#BCBCAC",
+      fighting: "#BC5442",
+      flying: "#669AFF",
+      poison: "#AB549A",
+      ground: "#DEBC54",
+      rock: "#BCAC66",
+      bug: "#ABBC1C",
+      ghost: "#6666BC",
+      steel: "#ABACBC",
+      fire: "#FF421C",
+      water: "#2F9AFF",
+      grass: "#78CD54",
+      electric: "#FFCD30",
+      psychic: "#FF549A",
+      ice: "#78DEFF",
+      dragon: "#7866EF",
+      dark: "#785442",
+      fairy: "#FFACFF",
+      shadow: "#0E2E4C"
+    }
+    return colors[typeName.toLowerCase()] || "#BCBCAC"
+  }
+
+  const getStatColor = (statName: string) => {
+    const colors: Record<string, string> = {
+      hp: '#4CAF50',
+      attack: '#F44336',
+      defense: '#2196F3',
+      specialAttack: '#FF9800',
+      specialDefense: '#9C27B0',
+      speed: '#FFEB3B',
+      total: '#795548'
+    }
+    return colors[statName.toLowerCase()] || '#757575'
+  }
+
+  const getStatAbbreviation = (statName: string) => {
+    const abbreviations: Record<string, string> = {
+      hp: 'HP',
+      attack: 'ATK',
+      defense: 'DEF',
+      specialattack: 'SpA',
+      specialdefense: 'SpD',
+      specialAttack: 'SpA',
+      specialDefense: 'SpD',
+      speed: 'SPD'
+    }
+    return abbreviations[statName] || abbreviations[statName.toLowerCase()] || statName.toUpperCase()
+  }
+
+  const totalStats = displayData.stats.reduce((sum, stat) => sum + stat, 0)
+
+  // Get the sprite to display (animated if available)
+  const displaySprite = detailedData?.animatedSprite || displayData.sprite
+
+  // Render evolution chain horizontally
+  const renderEvolutionChain = (evolution: any) => {
+    if (!evolution) return null
+
+    const evolutionChain = []
+    let current = evolution
+
+    // Build the chain array
+    while (current) {
+      evolutionChain.push(current)
+      current = current.evolvesTo && current.evolvesTo.length > 0 ? current.evolvesTo[0] : null
+    }
+
+    return (
+      <div className="flex items-center justify-center space-x-4">
+        {evolutionChain.map((evo, index) => (
+          <div key={evo.id} className="flex items-center">
+            {index > 0 && (
+              <div className="mx-2 text-gray-600 pokedex-font text-xs flex items-center h-12">
+                {evo.minLevel !== null ? `LVL. ${evo.minLevel}` : 'LVL. ?'}
+              </div>
+            )}
+            <div className="text-center">
+              <img 
+                src={evo.sprite} 
+                alt={evo.name}
+                className="w-12 h-12 object-contain mx-auto mb-1"
+              />
+              <div className="text-xs font-bold text-gray-800 uppercase pokedex-font">{evo.name}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  return (
+    <motion.div
+      className="w-full max-w-2xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      {/* Header with Pokémon sprite */}
+      <div 
+        className="relative h-48 flex items-center justify-center"
+        style={{ backgroundColor: getTypeColor(displayData.types[0]?.name || 'normal') }}
+      >
+        <motion.img
+          src={displaySprite}
+          alt={displayData.name}
+          className="w-32 h-32 object-contain drop-shadow-lg"
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          onLoad={() => setImageLoaded(true)}
+        />
+      </div>
+
+      {/* Main content area */}
+      <div className="p-4 space-y-3">
+        {/* Basic Info */}
+        <div className="text-center space-y-1">
+          <div className="text-xl font-bold text-gray-800 pokedex-font">N°{displayData.id}</div>
+          <div className="text-2xl font-bold text-blue-600 uppercase pokedex-large">{displayData.name}</div>
+          <div className="text-lg font-bold text-blue-600 uppercase pokedex-title">POKÉMON ENTRY</div>
+          <div className="text-xs text-gray-700 leading-tight px-2 pokedex-font">
+            {displayData.description}
+          </div>
+        </div>
+
+        {/* Physical Attributes */}
+        <div className="flex justify-between items-center py-2 border-t border-b border-gray-200">
+          <div className="text-center">
+            <div className="text-sm font-bold text-blue-600 uppercase pokedex-title">HEIGHT</div>
+            <div className="text-lg font-bold text-gray-800 pokedex-font">{displayData.height}M</div>
+          </div>
+          <div className="text-center">
+            <div className="text-sm font-bold text-blue-600 uppercase pokedex-title">WEIGHT</div>
+            <div className="text-lg font-bold text-gray-800 pokedex-font">{displayData.weight}KG</div>
+          </div>
+        </div>
+
+        {/* Abilities */}
+        <div className="text-center space-y-1">
+          <div className="text-sm font-bold text-blue-600 uppercase pokedex-title">ABILITIES</div>
+          <div className="flex justify-between">
+            <div className="text-sm font-bold text-gray-800 uppercase pokedex-font">
+              {displayData.abilities[0] || 'N/A'}
+            </div>
+            <div className="text-sm font-bold text-gray-800 uppercase pokedex-font">
+              {displayData.abilities[1] || 'N/A'}
+            </div>
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="text-center space-y-2">
+          <div className="text-sm font-bold text-blue-600 uppercase pokedex-title">STATS</div>
+          <div className="grid grid-cols-7 gap-1">
+            {displayData.stats.map((value, index) => {
+              const statNames = ['hp', 'attack', 'defense', 'specialAttack', 'specialDefense', 'speed']
+              const statName = statNames[index]
+              return (
+                <div key={statName} className="text-center">
+                  <div 
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-xs mx-auto mb-1 pokedex-font"
+                    style={{ backgroundColor: getStatColor(statName) }}
+                  >
+                    {getStatAbbreviation(statName)}
+                  </div>
+                  <div className="text-sm font-bold text-gray-800 pokedex-font">{value}</div>
+                </div>
+              )
+            })}
+            <div className="text-center">
+              <div 
+                className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-xs mx-auto mb-1 pokedex-font"
+                style={{ backgroundColor: getStatColor('total') }}
+              >
+                TOT
+              </div>
+              <div className="text-sm font-bold text-gray-800 pokedex-font">{totalStats}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Evolution Line */}
+        {displayData.evolutionChain && displayData.evolutionChain.evolvesTo && displayData.evolutionChain.evolvesTo.length > 0 && (
+          <div className="text-center space-y-1">
+            <div className="text-sm font-bold text-blue-600 uppercase pokedex-title">EVOLUTION</div>
+            {renderEvolutionChain(displayData.evolutionChain)}
+          </div>
+        )}
+
+        {/* Type Badges */}
+        <div className="text-center space-y-1">
+          <div className="text-sm font-bold text-blue-600 uppercase pokedex-title">TYPE</div>
+          <div className="flex justify-center space-x-2">
+            {displayData.types.map((type, index) => (
+              <span
+                key={index}
+                className="px-3 py-1 rounded-full text-white font-bold text-xs uppercase pokedex-font"
+                style={{ backgroundColor: getTypeColor(type.name) }}
+              >
+                {type.name}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
+export default PokemonDex
