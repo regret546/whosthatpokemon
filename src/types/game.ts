@@ -26,8 +26,6 @@ export interface GameState {
   streak: number;
   isGameActive: boolean;
   isLoading: boolean;
-  gameMode: GameMode;
-  difficulty: GameDifficulty;
   sessionId: string | null;
   startTime: number | null;
   endTime: number | null;
@@ -37,7 +35,6 @@ export interface GameState {
 
 export interface GameConfig {
   timeLimit: number;
-  difficulty: GameDifficulty;
   generation: number | "all";
   gameMode: GameMode;
   enableSounds: boolean;

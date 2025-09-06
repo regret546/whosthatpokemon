@@ -18,6 +18,13 @@ interface GameStore extends GameState {
   // Game configuration
   config: GameConfig;
 
+  // Additional game state
+  sessionId: string | null;
+  startTime: number | null;
+  endTime: number | null;
+  availableHints: GameHint[];
+  usedHints: GameHint[];
+
   // Game history
   gameHistory: GameSession[];
   currentStreak: number;
@@ -27,8 +34,8 @@ interface GameStore extends GameState {
   correctGuesses: number;
 
   // Achievements
-  achievements: Achievement[];
-  unlockedAchievements: Achievement[];
+  achievements: any[];
+  unlockedAchievements: any[];
 
   // Actions
   startGame: (config: Partial<GameConfig>) => Promise<void>;
@@ -50,14 +57,8 @@ interface GameStore extends GameState {
 
 const defaultConfig: GameConfig = {
   timeLimit: 30,
-  difficulty: "medium",
   generation: "all",
   gameMode: "classic",
-  enableSounds: true,
-  enableAnimations: true,
-  enableHints: false,
-  maxStreak: 0,
-  scoreMultiplier: 1,
 };
 
 const initialState: GameState = {
@@ -71,19 +72,17 @@ const initialState: GameState = {
   streak: 0,
   isGameActive: false,
   isLoading: false,
-  gameMode: "classic",
-  difficulty: "medium",
-  sessionId: null,
-  startTime: null,
-  endTime: null,
-  availableHints: [],
-  usedHints: [],
 };
 
 export const useGameStore = create<GameStore>((set, get) => ({
   // Initial state
   ...initialState,
   config: defaultConfig,
+  sessionId: null,
+  startTime: null,
+  endTime: null,
+  availableHints: [],
+  usedHints: [],
   gameHistory: [],
   currentStreak: 0,
   bestStreak: 0,

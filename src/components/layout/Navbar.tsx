@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, User, Trophy, Home, Settings } from "lucide-react";
+import { Menu, X, User, Trophy, Home, Settings, Book } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { clsx } from "clsx";
 
@@ -12,6 +12,7 @@ const Navbar: React.FC = () => {
   const navigation = [
     { name: "Home", href: "/", icon: Home },
     { name: "Game", href: "/game", icon: Trophy },
+    { name: "Pokédex", href: "/pokedex", icon: Book },
     { name: "Leaderboard", href: "/leaderboard", icon: Trophy },
     { name: "Profile", href: "/profile", icon: User },
   ];
@@ -26,7 +27,7 @@ const Navbar: React.FC = () => {
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-3">
               <img
-                src="/src/images/pokeball_logo.png"
+                src="/pokeball_logo.png"
                 alt="Pokeball Logo"
                 className="w-10 h-10 object-contain"
               />
@@ -40,18 +41,28 @@ const Navbar: React.FC = () => {
           <div className="hidden md:flex items-center space-x-8">
             {navigation.map((item) => {
               const Icon = item.icon;
+              const isCurrentActive = isActive(item.href);
               return (
                 <Link
                   key={item.name}
                   to={item.href}
-                  className={clsx(
-                    "text-sm font-medium transition-colors",
-                    isActive(item.href)
-                      ? "text-pokemon-blue"
-                      : "text-gray-600 hover:text-pokemon-gray"
-                  )}
+                  className="relative text-sm font-medium transition-colors group"
                 >
-                  {item.name}
+                  <span
+                    className={clsx(
+                      "relative z-10",
+                      isCurrentActive
+                        ? "text-pokemon-blue"
+                        : "text-gray-600 group-hover:text-pokemon-blue"
+                    )}
+                  >
+                    {item.name}
+                  </span>
+
+                  {/* Animated underline - only on hover, not for active state */}
+                  {!isCurrentActive && (
+                    <div className="absolute bottom-0 left-0 h-0.5 bg-pokemon-blue w-0 group-hover:w-full transition-all duration-300 ease-in-out" />
+                  )}
                 </Link>
               );
             })}
@@ -71,16 +82,17 @@ const Navbar: React.FC = () => {
                 </div>
                 <button
                   onClick={logout}
-                  className="text-gray-600 hover:text-pokemon-gray transition-colors"
+                  className="relative text-gray-600 hover:text-pokemon-blue transition-colors group"
                 >
-                  Logout
+                  <span className="relative z-10">Logout</span>
+                  <div className="absolute bottom-0 left-0 h-0.5 bg-pokemon-blue w-0 group-hover:w-full transition-all duration-300 ease-in-out" />
                 </button>
               </div>
             ) : (
               <div className="flex items-center space-x-4">
                 <Link
                   to="/login"
-                  className="text-gray-600 hover:text-pokemon-gray transition-colors"
+                  className="text-gray-600 hover:text-pokemon-blue transition-colors"
                 >
                   Login
                 </Link>

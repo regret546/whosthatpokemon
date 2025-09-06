@@ -87,19 +87,19 @@ const HintDisplay: React.FC<HintDisplayProps> = ({
               key={index}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="bg-pokemon-yellow/20 border-l-4 border-pokemon-yellow p-3 rounded-r-lg"
+              className="bg-pokemon-yellow/20 border-l-4 border-pokemon-yellow p-2 rounded-r-lg"
             >
               <div className="flex items-start gap-2">
-                <span className="text-lg">{getHintIcon(hint.type)}</span>
+                <span className="text-sm">{getHintIcon(hint.type)}</span>
                 <div className="flex-1">
                   <div className="text-xs font-semibold text-pokemon-gray uppercase">
                     {getHintTitle(hint.type)}
                   </div>
-                  <div className="text-sm text-gray-700 mt-1">
+                  <div className="text-xs text-gray-700 mt-1 leading-relaxed">
                     {hint.content}
                   </div>
                 </div>
-                <div className="text-xs bg-pokemon-yellow text-pokemon-gray px-2 py-1 rounded-full font-semibold">
+                <div className="text-xs bg-pokemon-yellow text-pokemon-gray px-1.5 py-0.5 rounded-full font-semibold">
                   -{hint.cost} ⭐
                 </div>
               </div>
@@ -113,7 +113,7 @@ const HintDisplay: React.FC<HintDisplayProps> = ({
         <button
           onClick={handleHintClick}
           disabled={disabled}
-          className="w-full bg-pokemon-purple text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-pokemon-purple text-white px-4 py-2 rounded-lg font-semibold hover:bg-purple-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Lightbulb className="w-5 h-5" />
           <span>Get Hint</span>

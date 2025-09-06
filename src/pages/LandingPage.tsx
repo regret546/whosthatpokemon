@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useGameStore } from "@/store/gameStore";
@@ -7,13 +7,15 @@ import { Play, Users, Trophy, Zap, Star, ArrowRight } from "lucide-react";
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   const { startGame } = useGameStore();
+  const [selectedGeneration, setSelectedGeneration] = useState("all");
+  const [selectedTimeLimit, setSelectedTimeLimit] = useState(30);
 
   const handleStartPlaying = () => {
-    // Start a game with default settings
+    // Start a game with selected settings
     startGame({
-      timeLimit: 30,
-      difficulty: "medium",
-      generation: "all",
+      timeLimit: selectedTimeLimit,
+      generation:
+        selectedGeneration === "all" ? "all" : Number(selectedGeneration),
       gameMode: "classic",
     });
 
@@ -35,7 +37,7 @@ const LandingPage: React.FC = () => {
               className="flex items-center justify-center gap-4 mb-6"
             >
               <img
-                src="/src/images/pokeball_logo.png"
+                src="/pokeball_logo.png"
                 alt="Pokeball Logo"
                 className="w-16 h-16 object-contain animate-pokeball-float"
               />
@@ -43,7 +45,7 @@ const LandingPage: React.FC = () => {
                 Who's That Pokémon?
               </h1>
               <img
-                src="/src/images/pokeball_logo.png"
+                src="/pokeball_logo.png"
                 alt="Pokeball Logo"
                 className="w-16 h-16 object-contain animate-pokeball-float"
                 style={{ animationDelay: "2s" }}
@@ -134,31 +136,23 @@ const LandingPage: React.FC = () => {
               <div className="space-y-4 mb-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Difficulty
-                  </label>
-                  <select className="input-modern">
-                    <option>Easy</option>
-                    <option>Medium</option>
-                    <option>Hard</option>
-                    <option>Expert</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Generation
                   </label>
-                  <select className="input-modern">
-                    <option>All Generations</option>
-                    <option>Generation I</option>
-                    <option>Generation II</option>
-                    <option>Generation III</option>
-                    <option>Generation IV</option>
-                    <option>Generation V</option>
-                    <option>Generation VI</option>
-                    <option>Generation VII</option>
-                    <option>Generation VIII</option>
-                    <option>Generation IX</option>
+                  <select
+                    className="input-modern"
+                    value={selectedGeneration}
+                    onChange={(e) => setSelectedGeneration(e.target.value)}
+                  >
+                    <option value="all">All Generations</option>
+                    <option value="1">Generation I</option>
+                    <option value="2">Generation II</option>
+                    <option value="3">Generation III</option>
+                    <option value="4">Generation IV</option>
+                    <option value="5">Generation V</option>
+                    <option value="6">Generation VI</option>
+                    <option value="7">Generation VII</option>
+                    <option value="8">Generation VIII</option>
+                    <option value="9">Generation IX</option>
                   </select>
                 </div>
 
@@ -166,10 +160,15 @@ const LandingPage: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Time Limit
                   </label>
-                  <select className="input-modern">
-                    <option>30 seconds</option>
-                    <option>60 seconds</option>
-                    <option>90 seconds</option>
+                  <select
+                    className="input-modern"
+                    value={selectedTimeLimit}
+                    onChange={(e) =>
+                      setSelectedTimeLimit(Number(e.target.value))
+                    }
+                  >
+                    <option value={15}>15 seconds</option>
+                    <option value={30}>30 seconds</option>
                   </select>
                 </div>
               </div>

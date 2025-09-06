@@ -35,12 +35,7 @@ export interface EvolutionChain {
 }
 
 export interface GameHint {
-  type:
-    | "flavor_text"
-    | "type"
-    | "height_weight"
-    | "evolution"
-    | "generation";
+  type: "flavor_text" | "type" | "height_weight" | "evolution" | "generation";
   content: string;
   cost: number;
 }
@@ -273,8 +268,7 @@ class PokemonApiService {
     const fallbackPokemon: Pokemon = {
       id: 1,
       name: "bulbasaur",
-      sprite:
-        "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/1.png",
+      sprite: "/no-pokemon.png",
       types: [
         { name: "grass", color: "#78C850" },
         { name: "poison", color: "#A040A0" },
@@ -726,7 +720,6 @@ class PokemonApiService {
         });
       }
 
-
       // 4. Height/Weight Hint (Fun trivia that helps differentiate)
       hints.push({
         type: "height_weight",
@@ -873,13 +866,13 @@ class PokemonApiService {
       }
     });
 
+    // Get sprite with fallback options
+    const sprite = this.getPokemonSpriteWithFallback(data);
+
     return {
       id: data.id,
       name: data.name,
-      sprite:
-        data.sprites.front_default ||
-        data.sprites.other?.["official-artwork"]?.front_default ||
-        "",
+      sprite,
       types,
       stats,
       abilities: data.abilities.map((ability: any) => ability.ability.name),
@@ -890,6 +883,28 @@ class PokemonApiService {
       isMythical: data.is_mythical || false,
       generation: this.getGenerationFromId(data.id),
     };
+  }
+
+  private getPokemonSpriteWithFallback(data: any): string {
+    // Try multiple sprite sources in order of preference
+    const spriteOptions = [
+      data.sprites.front_default,
+      data.sprites.other?.["official-artwork"]?.front_default,
+      data.sprites.other?.dream_world?.front_default,
+      data.sprites.other?.home?.front_default,
+      data.sprites.versions?.["generation-v"]?.["black-white"]?.front_default,
+      // If all else fails, use the no-pokemon placeholder
+      "/no-pokemon.png",
+    ];
+
+    // Return the first valid sprite URL, or fallback if none are available
+    for (const sprite of spriteOptions) {
+      if (sprite && typeof sprite === "string" && sprite.trim() !== "") {
+        return sprite;
+      }
+    }
+
+    return "/no-pokemon.png";
   }
 
   private getGenerationFromId(id: number): number {

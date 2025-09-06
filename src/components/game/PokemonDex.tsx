@@ -5,19 +5,22 @@ import {
   PokemonDetailedData,
   pokemonApiService,
 } from "@/services/pokemonApiService";
-import { clsx } from "clsx";
 
 interface PokemonDexProps {
   pokemon: Pokemon | null;
   isRevealed: boolean;
+  isLoading?: boolean;
 }
 
-const PokemonDex: React.FC<PokemonDexProps> = ({ pokemon, isRevealed }) => {
+const PokemonDex: React.FC<PokemonDexProps> = ({
+  pokemon,
+  isRevealed,
+  isLoading = false,
+}) => {
   const [detailedData, setDetailedData] = useState<PokemonDetailedData | null>(
     null
   );
-  const [isLoading, setIsLoading] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
 
   useEffect(() => {
     if (pokemon && isRevealed) {
@@ -28,14 +31,14 @@ const PokemonDex: React.FC<PokemonDexProps> = ({ pokemon, isRevealed }) => {
   const loadDetailedData = async () => {
     if (!pokemon) return;
 
-    setIsLoading(true);
+    setIsLoadingDetails(true);
     try {
       const data = await pokemonApiService.getPokemonDetailedData(pokemon.id);
       setDetailedData(data);
     } catch (error) {
       console.error("Failed to load detailed Pokémon data:", error);
     } finally {
-      setIsLoading(false);
+      setIsLoadingDetails(false);
     }
   };
 
@@ -43,22 +46,104 @@ const PokemonDex: React.FC<PokemonDexProps> = ({ pokemon, isRevealed }) => {
     return (
       <div className="w-full max-w-2xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
         <div className="h-96 flex items-center justify-center">
-          <div className="text-gray-500 text-lg">Loading Pokémon...</div>
+          <div className="text-center">
+            <img
+              src="/pokeball_logo.png"
+              alt="Loading..."
+              className="w-12 h-12 animate-spin mx-auto mb-4"
+            />
+            <div className="text-gray-500 text-lg">Loading Pokémon...</div>
+          </div>
         </div>
       </div>
     );
   }
 
-  if (isLoading) {
+  if (isLoadingDetails) {
     return (
       <div className="w-full max-w-2xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
         <div className="h-96 flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-pokemon-blue border-t-transparent mx-auto mb-4"></div>
+            <img
+              src="/pokeball_logo.png"
+              alt="Loading..."
+              className="w-12 h-12 animate-spin mx-auto mb-4"
+            />
             <div className="text-gray-500 text-lg">Loading Pokédex data...</div>
           </div>
         </div>
       </div>
+    );
+  }
+
+  // Show skeleton loading for next Pokemon transition
+  if (isLoading) {
+    return (
+      <motion.div
+        className="w-full max-w-lg mx-auto bg-white rounded-xl shadow-lg overflow-visible"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        {/* Header skeleton */}
+        <div className="relative h-24 flex items-center justify-center rounded-t-xl bg-gray-200 animate-pulse">
+          <div className="w-32 h-32 bg-gray-300 rounded-full -mt-16 animate-pulse"></div>
+        </div>
+
+        {/* Content skeleton */}
+        <div className="p-3 space-y-2">
+          {/* Basic Info skeleton */}
+          <div className="text-center space-y-2">
+            <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+            <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
+            <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+            <div className="h-3 bg-gray-200 rounded animate-pulse"></div>
+          </div>
+
+          {/* Physical Attributes skeleton */}
+          <div className="flex justify-between items-center py-1 border-t border-b border-gray-200">
+            <div className="text-center space-y-1">
+              <div className="h-3 bg-gray-200 rounded animate-pulse"></div>
+              <div className="h-5 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+            <div className="text-center space-y-1">
+              <div className="h-3 bg-gray-200 rounded animate-pulse"></div>
+              <div className="h-5 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+          </div>
+
+          {/* Abilities skeleton */}
+          <div className="text-center space-y-1">
+            <div className="h-3 bg-gray-200 rounded animate-pulse"></div>
+            <div className="flex justify-between">
+              <div className="h-4 bg-gray-200 rounded animate-pulse w-20"></div>
+              <div className="h-4 bg-gray-200 rounded animate-pulse w-20"></div>
+            </div>
+          </div>
+
+          {/* Stats skeleton */}
+          <div className="text-center space-y-1">
+            <div className="h-3 bg-gray-200 rounded animate-pulse"></div>
+            <div className="grid grid-cols-7 gap-1">
+              {[1, 2, 3, 4, 5, 6, 7].map((index) => (
+                <div key={index} className="text-center">
+                  <div className="w-8 h-8 bg-gray-200 rounded-full mx-auto mb-1 animate-pulse"></div>
+                  <div className="h-3 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Type skeleton */}
+          <div className="text-center space-y-1">
+            <div className="h-3 bg-gray-200 rounded animate-pulse"></div>
+            <div className="flex justify-center space-x-2">
+              <div className="h-6 bg-gray-200 rounded-full animate-pulse w-16"></div>
+              <div className="h-6 bg-gray-200 rounded-full animate-pulse w-16"></div>
+            </div>
+          </div>
+        </div>
+      </motion.div>
     );
   }
 
@@ -192,49 +277,53 @@ const PokemonDex: React.FC<PokemonDexProps> = ({ pokemon, isRevealed }) => {
 
   return (
     <motion.div
-      className="w-full max-w-lg mx-auto bg-white rounded-xl shadow-lg overflow-hidden"
+      className="w-full max-w-lg mx-auto bg-white rounded-xl shadow-lg overflow-visible"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
       {/* Header with Pokémon sprite */}
       <div
-        className="relative h-32 flex items-center justify-center"
+        className="relative h-24 flex items-center justify-center rounded-t-xl"
         style={{
-          backgroundColor: getTypeColor(displayData.types[0]?.name || "normal"),
+          backgroundColor: getTypeColor(
+            displayData.types[1]?.name || displayData.types[0]?.name || "normal"
+          ),
         }}
       >
         <motion.img
           src={displaySprite}
           alt={displayData.name}
-          className="w-32 h-32 object-contain drop-shadow-lg"
+          className="w-32 h-32 object-contain drop-shadow-lg -mt-16 relative z-10"
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          onLoad={() => setImageLoaded(true)}
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.src = "/no-pokemon.png";
+          }}
         />
       </div>
 
       {/* Main content area */}
-      <div className="p-4 space-y-3">
+      <div className="p-3 space-y-2">
         {/* Basic Info */}
-        <div className="text-center space-y-1">
-          <div className="text-xl font-bold text-pokemon-gray pokedex-font">
+        <div className="text-center space-y-0.5">
+          <div className="text-lg font-bold text-pokemon-gray pokedex-font">
             N°{displayData.id}
           </div>
-          <div className="text-2xl font-bold text-blue-600 uppercase pokedex-large">
+          <div className="text-xl font-bold text-blue-600 uppercase pokedex-large">
             {displayData.name}
           </div>
-          <div className="text-lg font-bold text-blue-600 uppercase pokedex-title">
+          <div className="text-sm font-bold text-blue-600 uppercase pokedex-title">
             POKÉMON ENTRY
           </div>
           <div className="text-xs text-gray-700 leading-tight px-2 pokedex-font">
             {displayData.description}
           </div>
         </div>
-
         {/* Physical Attributes */}
-        <div className="flex justify-between items-center py-2 border-t border-b border-gray-200">
+        <div className="flex justify-between items-center py-1 border-t border-b border-gray-200">
           <div className="text-center">
             <div className="text-sm font-bold text-blue-600 uppercase pokedex-title">
               HEIGHT
@@ -252,7 +341,6 @@ const PokemonDex: React.FC<PokemonDexProps> = ({ pokemon, isRevealed }) => {
             </div>
           </div>
         </div>
-
         {/* Abilities */}
         <div className="text-center space-y-1">
           <div className="text-sm font-bold text-blue-600 uppercase pokedex-title">
@@ -267,9 +355,8 @@ const PokemonDex: React.FC<PokemonDexProps> = ({ pokemon, isRevealed }) => {
             </div>
           </div>
         </div>
-
         {/* Stats */}
-        <div className="text-center space-y-2">
+        <div className="text-center space-y-1">
           <div className="text-sm font-bold text-blue-600 uppercase pokedex-title">
             STATS
           </div>
@@ -287,12 +374,15 @@ const PokemonDex: React.FC<PokemonDexProps> = ({ pokemon, isRevealed }) => {
               return (
                 <div key={statName} className="text-center">
                   <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-xs mx-auto mb-1 pokedex-font"
-                    style={{ backgroundColor: getStatColor(statName) }}
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold mx-auto mb-0.5"
+                    style={{
+                      fontSize: "10px",
+                      backgroundColor: getStatColor(statName),
+                    }}
                   >
                     {getStatAbbreviation(statName)}
                   </div>
-                  <div className="text-sm font-bold text-pokemon-gray pokedex-font">
+                  <div className="text-xs font-bold text-pokemon-gray pokedex-font">
                     {value}
                   </div>
                 </div>
@@ -300,18 +390,21 @@ const PokemonDex: React.FC<PokemonDexProps> = ({ pokemon, isRevealed }) => {
             })}
             <div className="text-center">
               <div
-                className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-xs mx-auto mb-1 pokedex-font"
-                style={{ backgroundColor: getStatColor("total") }}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold mx-auto mb-0.5"
+                style={{
+                  fontSize: "10px",
+                  backgroundColor: getStatColor("total"),
+                }}
               >
                 TOT
               </div>
-              <div className="text-sm font-bold text-pokemon-gray pokedex-font">
+              <div className="text-xs font-bold text-pokemon-gray pokedex-font">
                 {totalStats}
               </div>
             </div>
           </div>
-        </div>
-
+        </div>{" "}
+        on the
         {/* Evolution Line */}
         {displayData.evolutionChain &&
           displayData.evolutionChain.evolvesTo &&
@@ -323,7 +416,6 @@ const PokemonDex: React.FC<PokemonDexProps> = ({ pokemon, isRevealed }) => {
               {renderEvolutionChain(displayData.evolutionChain)}
             </div>
           )}
-
         {/* Type Badges */}
         <div className="text-center space-y-1">
           <div className="text-sm font-bold text-blue-600 uppercase pokedex-title">

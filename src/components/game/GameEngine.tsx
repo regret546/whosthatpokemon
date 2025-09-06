@@ -1,12 +1,10 @@
 import React, { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { useGameStore } from "@/store/gameStore";
-import { useAuthStore } from "@/store/authStore";
 import PokemonCard from "./PokemonCard";
 import PokemonDex from "./PokemonDex";
 import ChoiceButtons from "./ChoiceButtons";
 import GameStats from "./GameStats";
-import GameTimer from "./GameTimer";
 import HintDisplay from "./HintDisplay";
 import SoundManager from "./SoundManager";
 import { Play, RotateCcw, Settings, Volume2, VolumeX } from "lucide-react";
@@ -28,11 +26,10 @@ const GameEngine: React.FC<GameEngineProps> = ({ onGameEnd }) => {
     streak,
     isGameActive,
     isLoading,
-    gameMode,
-    difficulty,
     sessionId,
     availableHints,
     usedHints,
+    config,
     startGame,
     endGame,
     resetGame,
@@ -43,13 +40,7 @@ const GameEngine: React.FC<GameEngineProps> = ({ onGameEnd }) => {
     useHint,
   } = useGameStore();
 
-  const { isAuthenticated } = useAuthStore();
   const [isMuted, setIsMuted] = useState(false);
-  const [gameConfig, setGameConfig] = useState({
-    difficulty: "medium" as const,
-    gameMode: "classic" as const,
-    timeLimit: 30,
-  });
 
   const soundManagerRef = useRef<SoundManager | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -62,7 +53,7 @@ const GameEngine: React.FC<GameEngineProps> = ({ onGameEnd }) => {
     // Auto-start game if not already active and not initialized
     if (!isGameActive && !isLoading && !gameInitialized.current) {
       gameInitialized.current = true;
-      startGame(gameConfig);
+      startGame(config);
     }
 
     return () => {
@@ -70,7 +61,7 @@ const GameEngine: React.FC<GameEngineProps> = ({ onGameEnd }) => {
         clearInterval(timerRef.current);
       }
     };
-  }, [isGameActive, isLoading, startGame, gameConfig]);
+  }, [isGameActive, isLoading, startGame, config]);
 
   useEffect(() => {
     // Timer countdown - only run if game is active and not revealed
@@ -124,23 +115,35 @@ const GameEngine: React.FC<GameEngineProps> = ({ onGameEnd }) => {
   const handleGuess = async (guess: string) => {
     if (isRevealed || !isGameActive) return;
 
+    console.log("=== DEBUGGING ANSWER VALIDATION ===");
+    console.log("Selected guess:", guess);
+    console.log("Correct answer:", correctAnswer);
+    console.log("Guess lowercase:", guess.toLowerCase());
+    console.log("Correct answer lowercase:", correctAnswer.toLowerCase());
+    console.log(
+      "Are they equal?",
+      guess.toLowerCase() === correctAnswer.toLowerCase()
+    );
+
     setSelectedAnswer(guess);
+
+    // Play sound immediately based on the guess
+    if (soundManagerRef.current) {
+      if (guess.toLowerCase() === correctAnswer.toLowerCase()) {
+        console.log("Playing success sound for correct answer:", guess);
+        soundManagerRef.current.playSound("success");
+      } else {
+        console.log("Playing error sound for incorrect answer:", guess);
+        soundManagerRef.current.playSound("error");
+      }
+    } else {
+      console.warn("SoundManager not initialized");
+    }
 
     try {
       const result = await submitGuess(guess);
-
-      if (result.success) {
-        // Play success sound
-        if (soundManagerRef.current && !isMuted) {
-          soundManagerRef.current.playSound("success");
-        }
-        // Removed success animation
-      } else {
-        // Play error sound
-        if (soundManagerRef.current && !isMuted) {
-          soundManagerRef.current.playSound("error");
-        }
-      }
+      console.log("Submit guess result:", result);
+      // Sound already played above, no need to play again
     } catch (error) {
       console.error("Failed to submit guess:", error);
     }
@@ -157,6 +160,10 @@ const GameEngine: React.FC<GameEngineProps> = ({ onGameEnd }) => {
     }
   };
 
+  const capitalizeFirstLetter = (str: string) => {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  };
+
   const handleTimeUp = () => {
     // Clear the timer first to prevent multiple calls
     if (timerRef.current) {
@@ -167,11 +174,13 @@ const GameEngine: React.FC<GameEngineProps> = ({ onGameEnd }) => {
     if (isGameActive && !isRevealed) {
       revealAnswer();
       setSelectedAnswer("TIME_UP"); // Special value to indicate time up
-      if (soundManagerRef.current && !isMuted) {
+      if (soundManagerRef.current) {
         soundManagerRef.current.playSound("timeUp");
       }
       // Show correct answer in the time up message
-      toast.error(`⏰ Time's Up! The answer was ${correctAnswer}.`);
+      toast.error(
+        `⏰ Time's Up! The answer was ${capitalizeFirstLetter(correctAnswer)}.`
+      );
     }
   };
 
@@ -188,17 +197,19 @@ const GameEngine: React.FC<GameEngineProps> = ({ onGameEnd }) => {
 
   const handleRestartGame = () => {
     resetGame();
-    startGame(gameConfig);
+    startGame(config);
   };
 
   const toggleMute = () => {
-    setIsMuted(!isMuted);
+    const newMuteState = !isMuted;
+    setIsMuted(newMuteState);
     if (soundManagerRef.current) {
-      soundManagerRef.current.setMuted(!isMuted);
+      soundManagerRef.current.setMuted(newMuteState);
     }
   };
 
-  if (isLoading) {
+  // Show loading state only for initial game load, not for next Pokemon
+  if (isLoading && !currentPokemon) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <motion.div
@@ -207,7 +218,7 @@ const GameEngine: React.FC<GameEngineProps> = ({ onGameEnd }) => {
           className="text-center"
         >
           <img
-            src="/src/images/pokeball.png"
+            src="/pokeball_logo.png"
             alt="Loading..."
             className="w-16 h-16 animate-spin mx-auto mb-4"
           />
@@ -250,28 +261,17 @@ const GameEngine: React.FC<GameEngineProps> = ({ onGameEnd }) => {
   }
 
   return (
-    <div className="h-screen flex flex-col relative overflow-hidden bg-gray-100">
-      <div className="max-w-6xl mx-auto px-4 flex-1 flex flex-col py-4">
+    <div className="min-h-screen relative bg-gray-100">
+      <div className="max-w-6xl mx-auto px-4 py-4">
         {/* Game Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex justify-between items-center mb-8"
+          className="flex justify-between items-center mb-4"
         >
           <div className="flex items-center space-x-4">
-            <img
-              src="/src/images/pokeball_logo.png"
-              alt="Pokeball Logo"
-              className="w-12 h-12 object-contain"
-            />
-            <h1 className="text-4xl font-bold text-pokemon-gray font-pixel">
-              Who's That Pokémon?
-            </h1>
-            <div className="bg-pokemon-blue text-white px-4 py-2 rounded-full text-sm font-semibold">
-              {difficulty.toUpperCase()}
-            </div>
             <div className="bg-pokemon-yellow text-pokemon-gray px-4 py-2 rounded-full text-sm font-semibold">
-              {gameMode.toUpperCase()}
+              {config.gameMode.toUpperCase()}
             </div>
           </div>
 
@@ -311,13 +311,11 @@ const GameEngine: React.FC<GameEngineProps> = ({ onGameEnd }) => {
           streak={streak}
           timeRemaining={timeRemaining}
           isGameActive={isGameActive}
+          timeLimit={config.timeLimit}
         />
 
-        {/* Game Timer */}
-        <GameTimer timeRemaining={timeRemaining} isGameActive={isGameActive} />
-
         {/* Main Game Area */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 min-h-0">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 mt-[4rem]">
           {/* Left Side - Pokémon Card */}
           <motion.div
             initial={{ opacity: 0, x: -50 }}
@@ -330,6 +328,7 @@ const GameEngine: React.FC<GameEngineProps> = ({ onGameEnd }) => {
                 key={`pokédex-${currentPokemon?.id}-${sessionId}`}
                 pokemon={currentPokemon}
                 isRevealed={isRevealed}
+                isLoading={isLoading}
               />
             ) : (
               <PokemonCard
@@ -338,6 +337,7 @@ const GameEngine: React.FC<GameEngineProps> = ({ onGameEnd }) => {
                 isRevealed={isRevealed}
                 selectedAnswer={selectedAnswer}
                 correctAnswer={correctAnswer}
+                isLoading={isLoading}
               />
             )}
           </motion.div>
@@ -347,7 +347,7 @@ const GameEngine: React.FC<GameEngineProps> = ({ onGameEnd }) => {
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="flex flex-col space-y-4 min-h-0"
+            className="space-y-4"
           >
             {/* Choice Buttons */}
             <ChoiceButtons
@@ -357,6 +357,7 @@ const GameEngine: React.FC<GameEngineProps> = ({ onGameEnd }) => {
               isRevealed={isRevealed}
               onGuess={handleGuess}
               disabled={!isGameActive || isRevealed}
+              isLoading={isLoading}
             />
 
             {/* Game Actions */}
@@ -368,7 +369,10 @@ const GameEngine: React.FC<GameEngineProps> = ({ onGameEnd }) => {
                 className="space-y-4"
               >
                 <div className="text-center">
-                  {selectedAnswer === correctAnswer ? (
+                  {selectedAnswer &&
+                  correctAnswer &&
+                  selectedAnswer.toLowerCase() ===
+                    correctAnswer.toLowerCase() ? (
                     <motion.div
                       initial={{ scale: 0.8 }}
                       animate={{ scale: 1 }}
@@ -382,7 +386,8 @@ const GameEngine: React.FC<GameEngineProps> = ({ onGameEnd }) => {
                       animate={{ scale: 1 }}
                       className="text-pokemon-red text-lg font-semibold"
                     >
-                      Incorrect! The answer was {correctAnswer}
+                      Incorrect! The answer was{" "}
+                      {capitalizeFirstLetter(correctAnswer)}
                     </motion.div>
                   )}
                 </div>

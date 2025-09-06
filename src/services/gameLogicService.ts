@@ -8,7 +8,6 @@ export interface GameSession {
   choices: string[];
   correctAnswer: string;
   timeLimit: number;
-  difficulty: GameDifficulty;
   gameMode: GameMode;
   startTime: number;
   score: number;
@@ -61,12 +60,12 @@ class GameLogicService {
 
   async startGame(config: GameConfig): Promise<GameSession> {
     try {
-      // Get random Pokémon based on difficulty and generation
+      // Get random Pokémon based on generation
       const pokemonData = await pokemonService.getRandomPokemon({
-        difficulty: config.difficulty,
-        generation: config.generation === "all" ? undefined : config.generation,
+        generation:
+          config.generation === "all" ? undefined : Number(config.generation),
         type: undefined,
-        isLegendary: config.difficulty === "expert" ? undefined : false,
+        isLegendary: false,
       });
 
       const sessionId = this.generateSessionId();
@@ -76,7 +75,6 @@ class GameLogicService {
         choices: pokemonData.choices,
         correctAnswer: pokemonData.correctAnswer,
         timeLimit: config.timeLimit,
-        difficulty: config.difficulty,
         gameMode: config.gameMode,
         startTime: Date.now(),
         score: 0,
@@ -108,7 +106,6 @@ class GameLogicService {
     if (isCorrect) {
       score = this.calculateScore(
         timeTaken,
-        session.difficulty,
         session.pokemon,
         session.streak,
         session.hintsUsed,
@@ -183,7 +180,6 @@ class GameLogicService {
 
   private calculateScore(
     timeTaken: number,
-    difficulty: GameDifficulty,
     pokemon: Pokemon,
     streak: number,
     hintsUsed: number = 0,
@@ -200,15 +196,6 @@ class GameLogicService {
     // Hint penalty: Lose 10 points per hint used
     const hintPenalty = hintsUsed * 10;
     score -= hintPenalty;
-
-    // Difficulty bonus (slight bonus for harder difficulties)
-    const difficultyBonus = {
-      easy: 0,
-      medium: 10,
-      hard: 20,
-      expert: 30,
-    };
-    score += difficultyBonus[difficulty];
 
     // Streak bonus (small bonus for consecutive correct answers)
     const streakBonus = Math.min(streak * 5, 25); // Max 25 bonus points

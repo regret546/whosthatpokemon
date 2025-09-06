@@ -8,6 +8,7 @@ interface PokemonCardProps {
   isRevealed: boolean;
   selectedAnswer: string | null;
   correctAnswer: string;
+  isLoading?: boolean;
 }
 
 const PokemonCard: React.FC<PokemonCardProps> = ({
@@ -15,21 +16,22 @@ const PokemonCard: React.FC<PokemonCardProps> = ({
   isRevealed,
   selectedAnswer,
   correctAnswer,
+  isLoading = false,
 }) => {
   if (!pokemon) {
     return (
-      <div className="w-[300px] h-[300px] bg-white rounded-xl shadow-md flex items-center justify-center">
+      <div className="w-full max-w-lg mx-auto bg-white rounded-xl shadow-lg flex items-center justify-center h-96">
         <div className="text-gray-500">Loading Pokémon...</div>
       </div>
     );
   }
 
   const isCorrect = selectedAnswer === correctAnswer;
-  const showSilhouette = !isRevealed;
+  const showSilhouette = !isRevealed || isLoading;
 
   return (
     <motion.div
-      className="relative w-[300px] h-[300px] bg-white rounded-xl shadow-md overflow-hidden"
+      className="relative w-full max-w-lg mx-auto bg-white rounded-xl shadow-lg overflow-hidden h-96"
       initial={{ scale: 0.8, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       transition={{ duration: 0.5 }}
@@ -40,7 +42,7 @@ const PokemonCard: React.FC<PokemonCardProps> = ({
           src={pokemon.sprite}
           alt={pokemon.name}
           className={clsx(
-            "w-[350px] h-[350px] object-contain transition-all duration-500",
+            "w-64 h-64 object-contain transition-all duration-500",
             showSilhouette && "pokemon-silhouette",
             isRevealed && "animate-pokemon-reveal"
           )}
@@ -48,7 +50,11 @@ const PokemonCard: React.FC<PokemonCardProps> = ({
             filter: showSilhouette
               ? "brightness(0) saturate(100%) invert(0%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(0%) contrast(100%)"
               : "none",
-            opacity: showSilhouette ? 0.3 : 1,
+            opacity: showSilhouette ? 0.8 : 1,
+          }}
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.src = "/no-pokemon.png";
           }}
         />
 
@@ -102,6 +108,20 @@ const PokemonCard: React.FC<PokemonCardProps> = ({
             )}
           </>
         )}
+
+        {/* Loading overlay for next Pokemon */}
+        {isLoading && (
+          <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+            <div className="text-center">
+              <img
+                src="/pokeball_logo.png"
+                alt="Loading..."
+                className="w-12 h-12 animate-spin mx-auto mb-2"
+              />
+              <p className="text-sm text-gray-600">Loading next Pokémon...</p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Pokémon Name (when revealed) */}
@@ -149,7 +169,7 @@ const PokemonCard: React.FC<PokemonCardProps> = ({
       {!pokemon && (
         <div className="absolute inset-0 flex items-center justify-center">
           <img
-            src="/src/images/pokeball.png"
+            src="/pokeball_logo.png"
             alt="Loading..."
             className="w-12 h-12 animate-spin"
           />

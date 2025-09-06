@@ -10,6 +10,7 @@ interface ChoiceButtonsProps {
   isRevealed: boolean;
   onGuess: (choice: string) => void;
   disabled?: boolean;
+  isLoading?: boolean;
 }
 
 const ChoiceButtons: React.FC<ChoiceButtonsProps> = ({
@@ -19,13 +20,37 @@ const ChoiceButtons: React.FC<ChoiceButtonsProps> = ({
   isRevealed,
   onGuess,
   disabled = false,
+  isLoading = false,
 }) => {
   const getButtonState = (choice: string) => {
-    if (!isRevealed || !selectedAnswer) return "default";
+    // If no answer has been selected yet, show default state
+    if (!selectedAnswer) return "default";
 
-    if (choice === correctAnswer) return "correct";
-    if (choice === selectedAnswer && choice !== correctAnswer)
+    console.log("=== CHOICE BUTTON STATE DEBUG ===");
+    console.log("Choice:", choice);
+    console.log("Selected answer:", selectedAnswer);
+    console.log("Correct answer:", correctAnswer);
+    console.log("Choice lowercase:", choice.toLowerCase());
+    console.log("Correct answer lowercase:", correctAnswer.toLowerCase());
+    console.log(
+      "Is choice correct?",
+      choice.toLowerCase() === correctAnswer.toLowerCase()
+    );
+    console.log("Is choice selected?", choice === selectedAnswer);
+
+    // If an answer has been selected, show the appropriate state
+    if (choice.toLowerCase() === correctAnswer.toLowerCase()) {
+      console.log("Returning CORRECT state for:", choice);
+      return "correct";
+    }
+    if (
+      choice === selectedAnswer &&
+      choice.toLowerCase() !== correctAnswer.toLowerCase()
+    ) {
+      console.log("Returning INCORRECT state for:", choice);
       return "incorrect";
+    }
+    console.log("Returning DEFAULT state for:", choice);
     return "default";
   };
 
@@ -66,6 +91,22 @@ const ChoiceButtons: React.FC<ChoiceButtonsProps> = ({
     }
     return null;
   };
+
+  // Show loading state for answer choices
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 gap-3 w-full">
+        {[1, 2, 3, 4].map((index) => (
+          <div
+            key={index}
+            className="w-full p-4 rounded-lg bg-gray-200 animate-pulse"
+          >
+            <div className="h-6 bg-gray-300 rounded"></div>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 gap-3 w-full">
