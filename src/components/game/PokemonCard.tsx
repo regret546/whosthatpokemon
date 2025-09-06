@@ -1,13 +1,13 @@
-import React from 'react'
-import { motion } from 'framer-motion'
-import { Pokemon } from '@/types'
-import { clsx } from 'clsx'
+import React from "react";
+import { motion } from "framer-motion";
+import { Pokemon } from "@/types";
+import { clsx } from "clsx";
 
 interface PokemonCardProps {
-  pokemon: Pokemon | null
-  isRevealed: boolean
-  selectedAnswer: string | null
-  correctAnswer: string
+  pokemon: Pokemon | null;
+  isRevealed: boolean;
+  selectedAnswer: string | null;
+  correctAnswer: string;
 }
 
 const PokemonCard: React.FC<PokemonCardProps> = ({
@@ -18,18 +18,18 @@ const PokemonCard: React.FC<PokemonCardProps> = ({
 }) => {
   if (!pokemon) {
     return (
-      <div className="w-96 h-96 bg-white rounded-xl shadow-md flex items-center justify-center">
+      <div className="w-[300px] h-[300px] bg-white rounded-xl shadow-md flex items-center justify-center">
         <div className="text-gray-500">Loading Pokémon...</div>
       </div>
-    )
+    );
   }
 
-  const isCorrect = selectedAnswer === correctAnswer
-  const showSilhouette = !isRevealed
+  const isCorrect = selectedAnswer === correctAnswer;
+  const showSilhouette = !isRevealed;
 
   return (
     <motion.div
-      className="relative w-96 h-96 bg-white rounded-xl shadow-md overflow-hidden"
+      className="relative w-[300px] h-[300px] bg-white rounded-xl shadow-md overflow-hidden"
       initial={{ scale: 0.8, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       transition={{ duration: 0.5 }}
@@ -40,12 +40,14 @@ const PokemonCard: React.FC<PokemonCardProps> = ({
           src={pokemon.sprite}
           alt={pokemon.name}
           className={clsx(
-            'w-80 h-80 object-contain transition-all duration-500',
-            showSilhouette && 'pokemon-silhouette',
-            isRevealed && 'animate-pokemon-reveal'
+            "w-[350px] h-[350px] object-contain transition-all duration-500",
+            showSilhouette && "pokemon-silhouette",
+            isRevealed && "animate-pokemon-reveal"
           )}
           style={{
-            filter: showSilhouette ? 'brightness(0) saturate(100%) invert(0%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(0%) contrast(100%)' : 'none',
+            filter: showSilhouette
+              ? "brightness(0) saturate(100%) invert(0%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(0%) contrast(100%)"
+              : "none",
             opacity: showSilhouette ? 0.3 : 1,
           }}
         />
@@ -64,7 +66,7 @@ const PokemonCard: React.FC<PokemonCardProps> = ({
             )}
 
             {/* Incorrect Answer Overlay */}
-            {!isCorrect && selectedAnswer && (
+            {!isCorrect && selectedAnswer && selectedAnswer !== "TIME_UP" && (
               <motion.div
                 className="absolute inset-0 bg-gradient-to-br from-pokemon-red/20 to-pokemon-red/10"
                 initial={{ opacity: 0 }}
@@ -73,30 +75,30 @@ const PokemonCard: React.FC<PokemonCardProps> = ({
               />
             )}
 
-            {/* Confetti Effect */}
+            {/* Time's Up Overlay */}
+            {selectedAnswer === "TIME_UP" && (
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-br from-orange-500/20 to-orange-300/10"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5 }}
+              />
+            )}
+
+            {/* Success Glow Effect */}
             {isCorrect && (
-              <div className="absolute inset-0 pointer-events-none">
-                {[...Array(20)].map((_, i) => (
-                  <motion.div
-                    key={i}
-                    className="absolute w-2 h-2 bg-pokemon-yellow rounded-full"
-                    style={{
-                      left: `${Math.random() * 100}%`,
-                      top: `${Math.random() * 100}%`,
-                    }}
-                    animate={{
-                      y: [0, -100],
-                      opacity: [1, 0],
-                      scale: [1, 1.5],
-                    }}
-                    transition={{
-                      duration: 2,
-                      delay: Math.random() * 0.5,
-                      ease: 'easeOut',
-                    }}
-                  />
-                ))}
-              </div>
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-br from-pokemon-yellow/30 to-pokemon-blue/30 rounded-xl"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{
+                  opacity: [0, 1, 0.7],
+                  scale: [0.8, 1.05, 1],
+                }}
+                transition={{
+                  duration: 1.5,
+                  ease: "easeOut",
+                }}
+              />
             )}
           </>
         )}
@@ -110,10 +112,25 @@ const PokemonCard: React.FC<PokemonCardProps> = ({
           animate={{ y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
         >
-          <h3 className="text-2xl font-bold text-white text-center capitalize">
-            {pokemon.name}
-          </h3>
-          
+          <div className="flex items-center justify-center gap-3">
+            <h3 className="text-2xl font-bold text-white text-center capitalize">
+              {pokemon.name}
+            </h3>
+            {selectedAnswer === "TIME_UP" ? (
+              <div className="bg-orange-500 text-white px-2 py-1 rounded-full text-xs font-semibold">
+                ⏰ Time's Up!
+              </div>
+            ) : isCorrect ? (
+              <div className="bg-pokemon-green text-white px-2 py-1 rounded-full text-xs font-semibold">
+                ✓ Correct!
+              </div>
+            ) : selectedAnswer ? (
+              <div className="bg-pokemon-red text-white px-2 py-1 rounded-full text-xs font-semibold">
+                ✗ Incorrect
+              </div>
+            ) : null}
+          </div>
+
           {/* Pokémon Types */}
           <div className="flex justify-center space-x-2 mt-2">
             {pokemon.types.map((type, index) => (
@@ -131,11 +148,15 @@ const PokemonCard: React.FC<PokemonCardProps> = ({
       {/* Loading State */}
       {!pokemon && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-pokemon-blue border-t-transparent" />
+          <img
+            src="/src/images/pokeball.png"
+            alt="Loading..."
+            className="w-12 h-12 animate-spin"
+          />
         </div>
       )}
     </motion.div>
-  )
-}
+  );
+};
 
-export default PokemonCard
+export default PokemonCard;

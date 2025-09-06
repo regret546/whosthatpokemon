@@ -1,22 +1,22 @@
-import React, { useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
-import { Menu, X, User, Trophy, Home, Settings } from 'lucide-react'
-import { useAuthStore } from '@/store/authStore'
-import { clsx } from 'clsx'
+import React, { useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { Menu, X, User, Trophy, Home, Settings } from "lucide-react";
+import { useAuthStore } from "@/store/authStore";
+import { clsx } from "clsx";
 
 const Navbar: React.FC = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const { user, isAuthenticated, logout } = useAuthStore()
-  const location = useLocation()
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, isAuthenticated, logout } = useAuthStore();
+  const location = useLocation();
 
   const navigation = [
-    { name: 'Home', href: '/', icon: Home },
-    { name: 'Game', href: '/game', icon: Trophy },
-    { name: 'Leaderboard', href: '/leaderboard', icon: Trophy },
-    { name: 'Profile', href: '/profile', icon: User },
-  ]
+    { name: "Home", href: "/", icon: Home },
+    { name: "Game", href: "/game", icon: Trophy },
+    { name: "Leaderboard", href: "/leaderboard", icon: Trophy },
+    { name: "Profile", href: "/profile", icon: User },
+  ];
 
-  const isActive = (path: string) => location.pathname === path
+  const isActive = (path: string) => location.pathname === path;
 
   return (
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
@@ -25,31 +25,35 @@ const Navbar: React.FC = () => {
           {/* Logo */}
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">P</span>
-              </div>
-              <span className="text-2xl font-bold text-gray-900">PokéGuess</span>
+              <img
+                src="/src/images/pokeball_logo.png"
+                alt="Pokeball Logo"
+                className="w-10 h-10 object-contain"
+              />
+              <span className="text-2xl font-bold text-pokemon-gray font-pixel">
+                Who's That Pokémon?
+              </span>
             </Link>
           </div>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
             {navigation.map((item) => {
-              const Icon = item.icon
+              const Icon = item.icon;
               return (
                 <Link
                   key={item.name}
                   to={item.href}
                   className={clsx(
-                    'text-sm font-medium transition-colors',
+                    "text-sm font-medium transition-colors",
                     isActive(item.href)
-                      ? 'text-blue-600'
-                      : 'text-gray-600 hover:text-gray-900'
+                      ? "text-pokemon-blue"
+                      : "text-gray-600 hover:text-pokemon-gray"
                   )}
                 >
                   {item.name}
                 </Link>
-              )
+              );
             })}
           </div>
 
@@ -61,11 +65,13 @@ const Navbar: React.FC = () => {
                   <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
                     <User className="w-4 h-4 text-gray-600" />
                   </div>
-                  <span className="text-gray-900 font-medium">{user?.username}</span>
+                  <span className="text-pokemon-gray font-medium">
+                    {user?.username}
+                  </span>
                 </div>
                 <button
                   onClick={logout}
-                  className="text-gray-600 hover:text-gray-900 transition-colors"
+                  className="text-gray-600 hover:text-pokemon-gray transition-colors"
                 >
                   Logout
                 </button>
@@ -74,14 +80,11 @@ const Navbar: React.FC = () => {
               <div className="flex items-center space-x-4">
                 <Link
                   to="/login"
-                  className="text-gray-600 hover:text-gray-900 transition-colors"
+                  className="text-gray-600 hover:text-pokemon-gray transition-colors"
                 >
                   Login
                 </Link>
-                <Link
-                  to="/register"
-                  className="btn-primary"
-                >
+                <Link to="/register" className="btn-primary">
                   Sign Up
                 </Link>
               </div>
@@ -92,7 +95,7 @@ const Navbar: React.FC = () => {
           <div className="md:hidden flex items-center">
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="text-gray-600 hover:text-gray-800 transition-colors"
+              className="text-gray-600 hover:text-pokemon-gray transition-colors"
             >
               {isMenuOpen ? (
                 <X className="w-6 h-6" />
@@ -109,41 +112,43 @@ const Navbar: React.FC = () => {
         <div className="md:hidden bg-white border-t border-gray-200">
           <div className="px-2 pt-2 pb-3 space-y-1">
             {navigation.map((item) => {
-              const Icon = item.icon
+              const Icon = item.icon;
               return (
                 <Link
                   key={item.name}
                   to={item.href}
                   onClick={() => setIsMenuOpen(false)}
                   className={clsx(
-                    'flex items-center space-x-2 px-3 py-2 rounded-md text-base font-medium transition-colors',
+                    "flex items-center space-x-2 px-3 py-2 rounded-md text-base font-medium transition-colors",
                     isActive(item.href)
-                      ? 'bg-pokemon-blue text-white'
-                      : 'text-gray-600 hover:text-gray-800 hover:bg-gray-200'
+                      ? "bg-pokemon-blue text-white"
+                      : "text-gray-600 hover:text-pokemon-gray hover:bg-gray-200"
                   )}
                 >
                   <Icon className="w-5 h-5" />
                   <span>{item.name}</span>
                 </Link>
-              )
+              );
             })}
-            
+
             {/* Mobile User Menu */}
             <div className="pt-4 border-t border-gray-200">
               {isAuthenticated ? (
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2 px-3 py-2">
                     <div className="w-8 h-8 bg-pokemon-yellow rounded-full flex items-center justify-center">
-                      <User className="w-4 h-4 text-black" />
+                      <User className="w-4 h-4 text-pokemon-gray" />
                     </div>
-                    <span className="text-gray-800 font-medium">{user?.username}</span>
+                    <span className="text-pokemon-gray font-medium">
+                      {user?.username}
+                    </span>
                   </div>
                   <button
                     onClick={() => {
-                      logout()
-                      setIsMenuOpen(false)
+                      logout();
+                      setIsMenuOpen(false);
                     }}
-                    className="w-full text-left px-3 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                    className="w-full text-left px-3 py-2 text-gray-600 hover:text-pokemon-gray transition-colors"
                   >
                     Logout
                   </button>
@@ -153,14 +158,14 @@ const Navbar: React.FC = () => {
                   <Link
                     to="/login"
                     onClick={() => setIsMenuOpen(false)}
-                    className="block px-3 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                    className="block px-3 py-2 text-gray-600 hover:text-pokemon-gray transition-colors"
                   >
                     Login
                   </Link>
                   <Link
                     to="/register"
                     onClick={() => setIsMenuOpen(false)}
-                    className="block bg-pokemon-orange text-white px-3 py-2 rounded-md font-medium hover:bg-orange-600 transition-colors"
+                    className="block bg-pokemon-blue text-white px-3 py-2 rounded-md font-medium hover:bg-blue-600 transition-colors"
                   >
                     Sign Up
                   </Link>
@@ -171,7 +176,7 @@ const Navbar: React.FC = () => {
         </div>
       )}
     </nav>
-  )
-}
+  );
+};
 
-export default Navbar
+export default Navbar;

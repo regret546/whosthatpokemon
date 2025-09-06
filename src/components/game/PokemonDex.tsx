@@ -1,38 +1,43 @@
-import React, { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import { Pokemon } from '@/types'
-import { PokemonDetailedData, pokemonApiService } from '@/services/pokemonApiService'
-import { clsx } from 'clsx'
+import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { Pokemon } from "@/types";
+import {
+  PokemonDetailedData,
+  pokemonApiService,
+} from "@/services/pokemonApiService";
+import { clsx } from "clsx";
 
 interface PokemonDexProps {
-  pokemon: Pokemon | null
-  isRevealed: boolean
+  pokemon: Pokemon | null;
+  isRevealed: boolean;
 }
 
 const PokemonDex: React.FC<PokemonDexProps> = ({ pokemon, isRevealed }) => {
-  const [detailedData, setDetailedData] = useState<PokemonDetailedData | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [imageLoaded, setImageLoaded] = useState(false)
+  const [detailedData, setDetailedData] = useState<PokemonDetailedData | null>(
+    null
+  );
+  const [isLoading, setIsLoading] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   useEffect(() => {
     if (pokemon && isRevealed) {
-      loadDetailedData()
+      loadDetailedData();
     }
-  }, [pokemon, isRevealed])
+  }, [pokemon, isRevealed]);
 
   const loadDetailedData = async () => {
-    if (!pokemon) return
-    
-    setIsLoading(true)
+    if (!pokemon) return;
+
+    setIsLoading(true);
     try {
-      const data = await pokemonApiService.getPokemonDetailedData(pokemon.id)
-      setDetailedData(data)
+      const data = await pokemonApiService.getPokemonDetailedData(pokemon.id);
+      setDetailedData(data);
     } catch (error) {
-      console.error('Failed to load detailed Pokémon data:', error)
+      console.error("Failed to load detailed Pokémon data:", error);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   if (!pokemon) {
     return (
@@ -41,7 +46,7 @@ const PokemonDex: React.FC<PokemonDexProps> = ({ pokemon, isRevealed }) => {
           <div className="text-gray-500 text-lg">Loading Pokémon...</div>
         </div>
       </div>
-    )
+    );
   }
 
   if (isLoading) {
@@ -54,14 +59,14 @@ const PokemonDex: React.FC<PokemonDexProps> = ({ pokemon, isRevealed }) => {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   // Use detailed data if available, otherwise fall back to basic pokemon data
   const displayData = detailedData || {
     id: pokemon.id,
     name: pokemon.name,
-    description: 'No description available.',
+    description: "No description available.",
     height: pokemon.height,
     weight: pokemon.weight,
     abilities: pokemon.abilities,
@@ -71,17 +76,17 @@ const PokemonDex: React.FC<PokemonDexProps> = ({ pokemon, isRevealed }) => {
       pokemon.stats.defense,
       pokemon.stats.specialAttack,
       pokemon.stats.specialDefense,
-      pokemon.stats.speed
+      pokemon.stats.speed,
     ],
     evolutionChain: {
       id: pokemon.id,
       name: pokemon.name,
       sprite: pokemon.sprite,
-      evolvesTo: []
+      evolvesTo: [],
     },
     sprite: pokemon.sprite,
-    types: pokemon.types
-  }
+    types: pokemon.types,
+  };
 
   const getTypeColor = (typeName: string) => {
     const colors: Record<string, string> = {
@@ -103,54 +108,61 @@ const PokemonDex: React.FC<PokemonDexProps> = ({ pokemon, isRevealed }) => {
       dragon: "#7866EF",
       dark: "#785442",
       fairy: "#FFACFF",
-      shadow: "#0E2E4C"
-    }
-    return colors[typeName.toLowerCase()] || "#BCBCAC"
-  }
+      shadow: "#0E2E4C",
+    };
+    return colors[typeName.toLowerCase()] || "#BCBCAC";
+  };
 
   const getStatColor = (statName: string) => {
     const colors: Record<string, string> = {
-      hp: '#4CAF50',
-      attack: '#F44336',
-      defense: '#2196F3',
-      specialAttack: '#FF9800',
-      specialDefense: '#9C27B0',
-      speed: '#FFEB3B',
-      total: '#795548'
-    }
-    return colors[statName.toLowerCase()] || '#757575'
-  }
+      hp: "#4CAF50",
+      attack: "#F44336",
+      defense: "#2196F3",
+      specialAttack: "#FF9800",
+      specialDefense: "#9C27B0",
+      speed: "#FFEB3B",
+      total: "#795548",
+    };
+    return colors[statName.toLowerCase()] || "#757575";
+  };
 
   const getStatAbbreviation = (statName: string) => {
     const abbreviations: Record<string, string> = {
-      hp: 'HP',
-      attack: 'ATK',
-      defense: 'DEF',
-      specialattack: 'SpA',
-      specialdefense: 'SpD',
-      specialAttack: 'SpA',
-      specialDefense: 'SpD',
-      speed: 'SPD'
-    }
-    return abbreviations[statName] || abbreviations[statName.toLowerCase()] || statName.toUpperCase()
-  }
+      hp: "HP",
+      attack: "ATK",
+      defense: "DEF",
+      specialattack: "SpA",
+      specialdefense: "SpD",
+      specialAttack: "SpA",
+      specialDefense: "SpD",
+      speed: "SPD",
+    };
+    return (
+      abbreviations[statName] ||
+      abbreviations[statName.toLowerCase()] ||
+      statName.toUpperCase()
+    );
+  };
 
-  const totalStats = displayData.stats.reduce((sum, stat) => sum + stat, 0)
+  const totalStats = displayData.stats.reduce((sum, stat) => sum + stat, 0);
 
   // Get the sprite to display (animated if available)
-  const displaySprite = detailedData?.animatedSprite || displayData.sprite
+  const displaySprite = detailedData?.animatedSprite || displayData.sprite;
 
   // Render evolution chain horizontally
   const renderEvolutionChain = (evolution: any) => {
-    if (!evolution) return null
+    if (!evolution) return null;
 
-    const evolutionChain = []
-    let current = evolution
+    const evolutionChain = [];
+    let current = evolution;
 
     // Build the chain array
     while (current) {
-      evolutionChain.push(current)
-      current = current.evolvesTo && current.evolvesTo.length > 0 ? current.evolvesTo[0] : null
+      evolutionChain.push(current);
+      current =
+        current.evolvesTo && current.evolvesTo.length > 0
+          ? current.evolvesTo[0]
+          : null;
     }
 
     return (
@@ -159,34 +171,38 @@ const PokemonDex: React.FC<PokemonDexProps> = ({ pokemon, isRevealed }) => {
           <div key={evo.id} className="flex items-center">
             {index > 0 && (
               <div className="mx-2 text-gray-600 pokedex-font text-xs flex items-center h-12">
-                {evo.minLevel !== null ? `LVL. ${evo.minLevel}` : 'LVL. ?'}
+                {evo.minLevel !== null ? `LVL. ${evo.minLevel}` : "LVL. ?"}
               </div>
             )}
             <div className="text-center">
-              <img 
-                src={evo.sprite} 
+              <img
+                src={evo.sprite}
                 alt={evo.name}
                 className="w-12 h-12 object-contain mx-auto mb-1"
               />
-              <div className="text-xs font-bold text-gray-800 uppercase pokedex-font">{evo.name}</div>
+              <div className="text-xs font-bold text-pokemon-gray uppercase pokedex-font">
+                {evo.name}
+              </div>
             </div>
           </div>
         ))}
       </div>
-    )
-  }
+    );
+  };
 
   return (
     <motion.div
-      className="w-full max-w-2xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden"
+      className="w-full max-w-lg mx-auto bg-white rounded-xl shadow-lg overflow-hidden"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
       {/* Header with Pokémon sprite */}
-      <div 
-        className="relative h-48 flex items-center justify-center"
-        style={{ backgroundColor: getTypeColor(displayData.types[0]?.name || 'normal') }}
+      <div
+        className="relative h-32 flex items-center justify-center"
+        style={{
+          backgroundColor: getTypeColor(displayData.types[0]?.name || "normal"),
+        }}
       >
         <motion.img
           src={displaySprite}
@@ -203,9 +219,15 @@ const PokemonDex: React.FC<PokemonDexProps> = ({ pokemon, isRevealed }) => {
       <div className="p-4 space-y-3">
         {/* Basic Info */}
         <div className="text-center space-y-1">
-          <div className="text-xl font-bold text-gray-800 pokedex-font">N°{displayData.id}</div>
-          <div className="text-2xl font-bold text-blue-600 uppercase pokedex-large">{displayData.name}</div>
-          <div className="text-lg font-bold text-blue-600 uppercase pokedex-title">POKÉMON ENTRY</div>
+          <div className="text-xl font-bold text-pokemon-gray pokedex-font">
+            N°{displayData.id}
+          </div>
+          <div className="text-2xl font-bold text-blue-600 uppercase pokedex-large">
+            {displayData.name}
+          </div>
+          <div className="text-lg font-bold text-blue-600 uppercase pokedex-title">
+            POKÉMON ENTRY
+          </div>
           <div className="text-xs text-gray-700 leading-tight px-2 pokedex-font">
             {displayData.description}
           </div>
@@ -214,70 +236,99 @@ const PokemonDex: React.FC<PokemonDexProps> = ({ pokemon, isRevealed }) => {
         {/* Physical Attributes */}
         <div className="flex justify-between items-center py-2 border-t border-b border-gray-200">
           <div className="text-center">
-            <div className="text-sm font-bold text-blue-600 uppercase pokedex-title">HEIGHT</div>
-            <div className="text-lg font-bold text-gray-800 pokedex-font">{displayData.height}M</div>
+            <div className="text-sm font-bold text-blue-600 uppercase pokedex-title">
+              HEIGHT
+            </div>
+            <div className="text-lg font-bold text-pokemon-gray pokedex-font">
+              {displayData.height}M
+            </div>
           </div>
           <div className="text-center">
-            <div className="text-sm font-bold text-blue-600 uppercase pokedex-title">WEIGHT</div>
-            <div className="text-lg font-bold text-gray-800 pokedex-font">{displayData.weight}KG</div>
+            <div className="text-sm font-bold text-blue-600 uppercase pokedex-title">
+              WEIGHT
+            </div>
+            <div className="text-lg font-bold text-pokemon-gray pokedex-font">
+              {displayData.weight}KG
+            </div>
           </div>
         </div>
 
         {/* Abilities */}
         <div className="text-center space-y-1">
-          <div className="text-sm font-bold text-blue-600 uppercase pokedex-title">ABILITIES</div>
+          <div className="text-sm font-bold text-blue-600 uppercase pokedex-title">
+            ABILITIES
+          </div>
           <div className="flex justify-between">
-            <div className="text-sm font-bold text-gray-800 uppercase pokedex-font">
-              {displayData.abilities[0] || 'N/A'}
+            <div className="text-sm font-bold text-pokemon-gray uppercase pokedex-font">
+              {displayData.abilities[0] || "N/A"}
             </div>
-            <div className="text-sm font-bold text-gray-800 uppercase pokedex-font">
-              {displayData.abilities[1] || 'N/A'}
+            <div className="text-sm font-bold text-pokemon-gray uppercase pokedex-font">
+              {displayData.abilities[1] || "N/A"}
             </div>
           </div>
         </div>
 
         {/* Stats */}
         <div className="text-center space-y-2">
-          <div className="text-sm font-bold text-blue-600 uppercase pokedex-title">STATS</div>
+          <div className="text-sm font-bold text-blue-600 uppercase pokedex-title">
+            STATS
+          </div>
           <div className="grid grid-cols-7 gap-1">
             {displayData.stats.map((value, index) => {
-              const statNames = ['hp', 'attack', 'defense', 'specialAttack', 'specialDefense', 'speed']
-              const statName = statNames[index]
+              const statNames = [
+                "hp",
+                "attack",
+                "defense",
+                "specialAttack",
+                "specialDefense",
+                "speed",
+              ];
+              const statName = statNames[index];
               return (
                 <div key={statName} className="text-center">
-                  <div 
+                  <div
                     className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-xs mx-auto mb-1 pokedex-font"
                     style={{ backgroundColor: getStatColor(statName) }}
                   >
                     {getStatAbbreviation(statName)}
                   </div>
-                  <div className="text-sm font-bold text-gray-800 pokedex-font">{value}</div>
+                  <div className="text-sm font-bold text-pokemon-gray pokedex-font">
+                    {value}
+                  </div>
                 </div>
-              )
+              );
             })}
             <div className="text-center">
-              <div 
+              <div
                 className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-xs mx-auto mb-1 pokedex-font"
-                style={{ backgroundColor: getStatColor('total') }}
+                style={{ backgroundColor: getStatColor("total") }}
               >
                 TOT
               </div>
-              <div className="text-sm font-bold text-gray-800 pokedex-font">{totalStats}</div>
+              <div className="text-sm font-bold text-pokemon-gray pokedex-font">
+                {totalStats}
+              </div>
             </div>
           </div>
         </div>
 
         {/* Evolution Line */}
-        {displayData.evolutionChain && displayData.evolutionChain.evolvesTo && displayData.evolutionChain.evolvesTo.length > 0 && (
-          <div className="text-center space-y-1">
-            <div className="text-sm font-bold text-blue-600 uppercase pokedex-title">EVOLUTION</div>
-            {renderEvolutionChain(displayData.evolutionChain)}
-          </div>
-        )}
+        {displayData.evolutionChain &&
+          displayData.evolutionChain.evolvesTo &&
+          displayData.evolutionChain.evolvesTo.length > 0 && (
+            <div className="text-center space-y-1">
+              <div className="text-sm font-bold text-blue-600 uppercase pokedex-title">
+                EVOLUTION
+              </div>
+              {renderEvolutionChain(displayData.evolutionChain)}
+            </div>
+          )}
 
         {/* Type Badges */}
         <div className="text-center space-y-1">
-          <div className="text-sm font-bold text-blue-600 uppercase pokedex-title">TYPE</div>
+          <div className="text-sm font-bold text-blue-600 uppercase pokedex-title">
+            TYPE
+          </div>
           <div className="flex justify-center space-x-2">
             {displayData.types.map((type, index) => (
               <span
@@ -292,7 +343,7 @@ const PokemonDex: React.FC<PokemonDexProps> = ({ pokemon, isRevealed }) => {
         </div>
       </div>
     </motion.div>
-  )
-}
+  );
+};
 
-export default PokemonDex
+export default PokemonDex;
