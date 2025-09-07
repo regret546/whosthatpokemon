@@ -54,6 +54,30 @@ const PokemonCard: React.FC<PokemonCardProps> = ({
           }}
           onError={(e) => {
             const target = e.target as HTMLImageElement;
+
+            // Try alternative sprite URLs before falling back to placeholder
+            if (
+              target.src.includes("front_default") ||
+              target.src.includes("sprites/pokemon/")
+            ) {
+              // Try official artwork
+              const officialArtwork = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${pokemon.id}.png`;
+              if (target.src !== officialArtwork) {
+                target.src = officialArtwork;
+                return;
+              }
+            }
+
+            if (target.src.includes("official-artwork")) {
+              // Try home sprite
+              const homeSprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/${pokemon.id}.png`;
+              if (target.src !== homeSprite) {
+                target.src = homeSprite;
+                return;
+              }
+            }
+
+            // Final fallback
             target.src = "/no-pokemon.png";
           }}
         />

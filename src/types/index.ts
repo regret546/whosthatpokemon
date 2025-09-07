@@ -140,6 +140,7 @@ export interface GameConfig {
   timeLimit: number;
   generation: number | "all";
   gameMode: "classic" | "speed" | "streak" | "daily";
+  difficulty?: "easy" | "medium" | "hard" | "expert";
 }
 
 // Achievement types

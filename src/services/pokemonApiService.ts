@@ -58,7 +58,6 @@ class PokemonApiService {
   // Get random Pokémon for game
   async getRandomPokemon(
     params: {
-      difficulty?: string;
       generation?: number;
       type?: string;
       isLegendary?: boolean;
@@ -77,9 +76,11 @@ class PokemonApiService {
       }
 
       // Pick a random Pokémon
-      const randomId =
-        pokemonIds[Math.floor(Math.random() * pokemonIds.length)];
+      let randomId = pokemonIds[Math.floor(Math.random() * pokemonIds.length)];
       console.log("Selected Pokémon ID:", randomId);
+
+      // Debug: Force Pokemon 932 for testing
+      // randomId = 932;
 
       const pokemon = await this.getPokemonById(randomId);
 
@@ -136,11 +137,11 @@ class PokemonApiService {
         speciesData.evolution_chain.url
       );
 
-      // Get animated sprite for generation V+ Pokémon
+      // Animated sprites exist only for Gen 1-5 (IDs <= 649). Newer gens don't have these assets.
       const animatedSprite =
-        pokemonId >= 650
-          ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/${pokemonId}.png`
-          : `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/${pokemonId}.gif`;
+        pokemonId <= 649
+          ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/${pokemonId}.gif`
+          : undefined;
 
       // Extract stats array
       const stats = pokemonData.stats.map((stat: any) => stat.base_stat);
@@ -165,7 +166,7 @@ class PokemonApiService {
         abilities: abilities,
         stats: stats,
         evolutionChain: evolutionChain,
-        sprite: pokemonData.sprites.front_default,
+        sprite: this.getPokemonSpriteWithFallback(pokemonData),
         animatedSprite: animatedSprite,
         types: types,
       };
@@ -535,7 +536,6 @@ class PokemonApiService {
 
   // Private helper methods
   private async getPokemonIdsByCriteria(params: {
-    difficulty?: string;
     generation?: number;
     type?: string;
     isLegendary?: boolean;
@@ -550,20 +550,11 @@ class PokemonApiService {
           (_, i) => startId + i
         );
       } else {
-        // Get all Pokémon IDs (limit to first 1000 for performance)
-        pokemonIds = Array.from({ length: 1000 }, (_, i) => i + 1);
+        // Get all Pokémon IDs (up to Gen 9 - Pokemon 1008)
+        pokemonIds = Array.from({ length: 1008 }, (_, i) => i + 1);
       }
 
       console.log("Initial Pokémon IDs:", pokemonIds.length);
-
-      // Filter by difficulty
-      if (params.difficulty) {
-        pokemonIds = await this.filterByDifficulty(
-          pokemonIds,
-          params.difficulty
-        );
-        console.log("After difficulty filter:", pokemonIds.length);
-      }
 
       // Filter by type
       if (params.type) {
@@ -585,26 +576,6 @@ class PokemonApiService {
       console.error("Error getting Pokémon IDs by criteria:", error);
       // Fallback to basic Pokémon IDs
       return Array.from({ length: 151 }, (_, i) => i + 1); // Gen 1 Pokémon
-    }
-  }
-
-  private async filterByDifficulty(
-    pokemonIds: number[],
-    difficulty: string
-  ): Promise<number[]> {
-    // This is a simplified implementation
-    // In a real app, you'd have a more sophisticated difficulty system
-    switch (difficulty) {
-      case "easy":
-        return pokemonIds.slice(0, 151); // Gen 1 only
-      case "medium":
-        return pokemonIds.slice(0, 400); // Gen 1-3
-      case "hard":
-        return pokemonIds.slice(0, 700); // Gen 1-6
-      case "expert":
-        return pokemonIds; // All generations
-      default:
-        return pokemonIds;
     }
   }
 
@@ -668,7 +639,7 @@ class PokemonApiService {
       // Get 3 random Pokémon from the same generation
       const otherIds = [];
       for (let i = 0; i < 3; i++) {
-        let randomId;
+        let randomId: number;
         do {
           randomId =
             Math.floor(Math.random() * (endId - startId + 1)) + startId;
@@ -886,25 +857,47 @@ class PokemonApiService {
   }
 
   private getPokemonSpriteWithFallback(data: any): string {
-    // Try multiple sprite sources in order of preference
+    const pokemonId = data.id;
+
+    // Comprehensive sprite selection with robust fallbacks
     const spriteOptions = [
+      // Primary: API-provided sprites (most reliable)
       data.sprites.front_default,
       data.sprites.other?.["official-artwork"]?.front_default,
-      data.sprites.other?.dream_world?.front_default,
       data.sprites.other?.home?.front_default,
+
+      // Secondary: Direct construction (guaranteed to exist for valid Pokemon)
+      `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemonId}.png`,
+      `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${pokemonId}.png`,
+      `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/${pokemonId}.png`,
+
+      // Tertiary: Other API sprites
+      data.sprites.other?.dream_world?.front_default,
       data.sprites.versions?.["generation-v"]?.["black-white"]?.front_default,
-      // If all else fails, use the no-pokemon placeholder
+
+      // Final fallback
       "/no-pokemon.png",
     ];
 
-    // Return the first valid sprite URL, or fallback if none are available
+    // Find the first valid sprite URL
     for (const sprite of spriteOptions) {
-      if (sprite && typeof sprite === "string" && sprite.trim() !== "") {
+      if (this.isValidSpriteUrl(sprite)) {
         return sprite;
       }
     }
-
     return "/no-pokemon.png";
+  }
+
+  private isValidSpriteUrl(url: any): boolean {
+    return (
+      url &&
+      typeof url === "string" &&
+      url.trim() !== "" &&
+      url !== "null" &&
+      url !== "undefined" &&
+      !url.includes("null") &&
+      !url.includes("undefined")
+    );
   }
 
   private getGenerationFromId(id: number): number {

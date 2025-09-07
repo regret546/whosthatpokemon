@@ -45,6 +45,7 @@ const GameEngine: React.FC<GameEngineProps> = ({ onGameEnd }) => {
   const soundManagerRef = useRef<SoundManager | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const gameInitialized = useRef(false);
+  const startToastShown = useRef(false);
 
   useEffect(() => {
     // Initialize sound manager
@@ -54,6 +55,8 @@ const GameEngine: React.FC<GameEngineProps> = ({ onGameEnd }) => {
     if (!isGameActive && !isLoading && !gameInitialized.current) {
       gameInitialized.current = true;
       startGame(config);
+      // Show the start toast only on the game page
+      toast.success("Game started! Good luck!");
     }
 
     return () => {
@@ -65,10 +68,11 @@ const GameEngine: React.FC<GameEngineProps> = ({ onGameEnd }) => {
 
   useEffect(() => {
     // Timer countdown - only run if game is active and not revealed
-    if (isGameActive && !isRevealed) {
+    if (isGameActive && !isRevealed && timeRemaining > 0) {
       // Clear any existing timer first
       if (timerRef.current) {
         clearInterval(timerRef.current);
+        timerRef.current = null;
       }
 
       timerRef.current = setInterval(() => {
@@ -99,9 +103,12 @@ const GameEngine: React.FC<GameEngineProps> = ({ onGameEnd }) => {
           handleTimeUp();
         }
       }, 1000);
-    } else if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
+    } else {
+      // Clear timer if conditions are not met
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
     }
 
     return () => {
@@ -110,42 +117,40 @@ const GameEngine: React.FC<GameEngineProps> = ({ onGameEnd }) => {
         timerRef.current = null;
       }
     };
-  }, [isGameActive, isRevealed]); // Removed timeRemaining from dependencies
+  }, [isGameActive, isRevealed, timeRemaining]); // Added timeRemaining back to dependencies
 
   const handleGuess = async (guess: string) => {
     if (isRevealed || !isGameActive) return;
 
-    console.log("=== DEBUGGING ANSWER VALIDATION ===");
-    console.log("Selected guess:", guess);
-    console.log("Correct answer:", correctAnswer);
-    console.log("Guess lowercase:", guess.toLowerCase());
-    console.log("Correct answer lowercase:", correctAnswer.toLowerCase());
-    console.log(
-      "Are they equal?",
-      guess.toLowerCase() === correctAnswer.toLowerCase()
-    );
+    // Immediate client-side validation for sound feedback
+    const normalizedGuess = guess.toLowerCase().trim();
+    const normalizedCorrect = correctAnswer.toLowerCase().trim();
+    const isCorrect = normalizedGuess === normalizedCorrect;
+
+    // Play sound immediately based on client-side validation
+    if (soundManagerRef.current) {
+      if (isCorrect) {
+        soundManagerRef.current.playSound("success");
+      } else {
+        soundManagerRef.current.playSound("error");
+      }
+    }
 
     setSelectedAnswer(guess);
 
-    // Play sound immediately based on the guess
-    if (soundManagerRef.current) {
-      if (guess.toLowerCase() === correctAnswer.toLowerCase()) {
-        console.log("Playing success sound for correct answer:", guess);
-        soundManagerRef.current.playSound("success");
-      } else {
-        console.log("Playing error sound for incorrect answer:", guess);
-        soundManagerRef.current.playSound("error");
-      }
-    } else {
-      console.warn("SoundManager not initialized");
-    }
-
     try {
-      const result = await submitGuess(guess);
-      console.log("Submit guess result:", result);
-      // Sound already played above, no need to play again
+      // Submit guess for server-side processing and scoring
+      await submitGuess(guess);
+
+      // Note: We don't play sound here anymore since it's already played above
+      // The server result should match our client-side validation
     } catch (error) {
       console.error("Failed to submit guess:", error);
+      // Only play error sound if we haven't already played one
+      if (soundManagerRef.current && isCorrect) {
+        // If we thought it was correct but submission failed, play error sound
+        soundManagerRef.current.playSound("error");
+      }
     }
   };
 
@@ -153,7 +158,8 @@ const GameEngine: React.FC<GameEngineProps> = ({ onGameEnd }) => {
     if (isGameActive) {
       try {
         await nextPokemon();
-        setSelectedAnswer(null);
+        // Note: nextPokemon() already resets selectedAnswer and isRevealed in the store
+        // No need to call setSelectedAnswer(null) here
       } catch (error) {
         console.error("Failed to get next Pokémon:", error);
       }
@@ -323,21 +329,28 @@ const GameEngine: React.FC<GameEngineProps> = ({ onGameEnd }) => {
             transition={{ duration: 0.5 }}
             className="flex justify-center items-start"
           >
-            {isRevealed ? (
+            {/* During loading, show neither the card nor the Pokédex to avoid stale overlays */}
+            {isLoading ? (
+              <PokemonDex
+                pokemon={null as any}
+                isRevealed={false}
+                isLoading={true}
+              />
+            ) : isRevealed ? (
               <PokemonDex
                 key={`pokédex-${currentPokemon?.id}-${sessionId}`}
                 pokemon={currentPokemon}
                 isRevealed={isRevealed}
-                isLoading={isLoading}
+                isLoading={false}
               />
             ) : (
               <PokemonCard
                 key={`pokemon-card-${currentPokemon?.id}-${sessionId}`}
                 pokemon={currentPokemon}
-                isRevealed={isRevealed}
+                isRevealed={false}
                 selectedAnswer={selectedAnswer}
                 correctAnswer={correctAnswer}
-                isLoading={isLoading}
+                isLoading={false}
               />
             )}
           </motion.div>

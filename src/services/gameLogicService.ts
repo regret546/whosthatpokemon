@@ -1,4 +1,4 @@
-import { Pokemon, GameConfig, GameDifficulty, GameMode } from "@/types";
+import { Pokemon, GameConfig, GameMode } from "@/types";
 import { GameHint } from "./pokemonApiService";
 import { pokemonService } from "./pokemonService";
 
@@ -37,16 +37,10 @@ export interface ScoringConfig {
 }
 
 class GameLogicService {
-  private scoringConfig: ScoringConfig = {
+  private scoringConfig = {
     baseScore: 100,
     timeBonusMultiplier: 2,
     streakMultiplier: 0.1,
-    difficultyMultiplier: {
-      easy: 1.0,
-      medium: 1.5,
-      hard: 2.0,
-      expert: 3.0,
-    },
     rarityMultiplier: {
       common: 1.0,
       uncommon: 1.2,
@@ -60,8 +54,9 @@ class GameLogicService {
 
   async startGame(config: GameConfig): Promise<GameSession> {
     try {
-      // Get random Pokémon based on generation
+      // Get random Pokémon based on generation and difficulty
       const pokemonData = await pokemonService.getRandomPokemon({
+        difficulty: config.difficulty || "medium", // Use config difficulty or default to medium
         generation:
           config.generation === "all" ? undefined : Number(config.generation),
         type: undefined,
@@ -97,8 +92,11 @@ class GameLogicService {
     }
 
     const timeTaken = (Date.now() - session.startTime) / 1000;
-    const isCorrect =
-      guess.toLowerCase() === session.correctAnswer.toLowerCase();
+
+    // Normalize both strings for comparison
+    const normalizedGuess = guess.toLowerCase().trim();
+    const normalizedCorrect = session.correctAnswer.toLowerCase().trim();
+    const isCorrect = normalizedGuess === normalizedCorrect;
 
     let score = 0;
     let newStreak = session.streak;
@@ -236,10 +234,6 @@ class GameLogicService {
       default:
         return 30;
     }
-  }
-
-  getDifficultyMultiplier(difficulty: GameDifficulty): number {
-    return this.scoringConfig.difficultyMultiplier[difficulty];
   }
 
   // Achievement checking

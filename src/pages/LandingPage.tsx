@@ -6,11 +6,14 @@ import { Play, Users, Trophy, Zap, Star, ArrowRight } from "lucide-react";
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
-  const { startGame } = useGameStore();
+  const { startGame, resetGame } = useGameStore();
   const [selectedGeneration, setSelectedGeneration] = useState("all");
   const [selectedTimeLimit, setSelectedTimeLimit] = useState(30);
 
   const handleStartPlaying = () => {
+    // Ensure store is fully reset to avoid flashing previous round state
+    resetGame();
+
     // Start a game with selected settings
     startGame({
       timeLimit: selectedTimeLimit,
@@ -167,7 +170,8 @@ const LandingPage: React.FC = () => {
                       setSelectedTimeLimit(Number(e.target.value))
                     }
                   >
-                    <option value={15}>15 seconds</option>
+                    <option value={10}>10 seconds</option>
+                    <option value={20}>20 seconds</option>
                     <option value={30}>30 seconds</option>
                   </select>
                 </div>

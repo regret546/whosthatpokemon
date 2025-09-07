@@ -10,6 +10,7 @@ import {
 } from "@/types";
 import { GameHint } from "@/services/pokemonApiService";
 import { gameService } from "@/services/gameService";
+import type { StartGameRequest } from "@/types";
 import { pokemonService } from "@/services/pokemonService";
 import { gameLogicService, GameSession } from "@/services/gameLogicService";
 import toast from "react-hot-toast";
@@ -96,10 +97,18 @@ export const useGameStore = create<GameStore>((set, get) => ({
   startGame: async (config: Partial<GameConfig>) => {
     const newConfig = { ...defaultConfig, ...config };
     set({
+      // Ensure we fully reset UI state before loading to avoid flashing old round state
       isLoading: true,
       config: newConfig,
       isGameActive: true,
       startTime: Date.now(),
+      // Clear previous round/session visuals
+      currentPokemon: null,
+      choices: [],
+      correctAnswer: "",
+      selectedAnswer: null,
+      isRevealed: false,
+      timeRemaining: newConfig.timeLimit,
     });
 
     try {
@@ -125,14 +134,23 @@ export const useGameStore = create<GameStore>((set, get) => ({
         usedHints: [],
       });
 
+      // Timer will be started by GameEngine component
+
       // Also try to sync with backend (non-blocking)
       try {
-        await gameService.startGame(newConfig);
+        const startReq: StartGameRequest = {
+          gameMode: newConfig.gameMode,
+          difficulty: (newConfig.difficulty || "medium") as any,
+          generation:
+            newConfig.generation === "all"
+              ? undefined
+              : Number(newConfig.generation),
+          timeLimit: newConfig.timeLimit,
+        };
+        await gameService.startGame(startReq);
       } catch (backendError) {
         console.warn("Backend sync failed:", backendError);
       }
-
-      toast.success("Game started! Good luck!");
     } catch (error: any) {
       console.error("Failed to start game:", error);
       set({
@@ -210,13 +228,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
         totalGuesses: totalGames,
       });
 
-      set({
+      set((state) => ({
         isGameActive: false,
         endTime: Date.now(),
         isLoading: false,
-        totalScore: totalScore + score,
-        bestStreak: Math.max(bestStreak, streak),
-      });
+        totalScore: state.totalScore + score,
+        bestStreak: Math.max(state.bestStreak, streak),
+      }));
 
       // Show final results
       toast.success(`Game completed! Final score: ${score}`);
@@ -311,7 +329,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const { sessionId, config } = get();
     if (!sessionId) return;
 
-    set({ isLoading: true });
+    // Reset states immediately to prevent showing previous answer states during loading
+    set({
+      isLoading: true,
+      selectedAnswer: null,
+      isRevealed: false,
+    });
 
     try {
       // Use local game logic service instead of backend API
@@ -343,34 +366,4 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 }));
 
-// Timer effect
-let timerInterval: NodeJS.Timeout | null = null;
-
-export const useGameTimer = () => {
-  const { timeRemaining, isGameActive, setTimeRemaining, endGame } =
-    useGameStore();
-
-  const startTimer = () => {
-    if (timerInterval) clearInterval(timerInterval);
-
-    timerInterval = setInterval(() => {
-      const { timeRemaining, isGameActive } = useGameStore.getState();
-
-      if (isGameActive && timeRemaining > 0) {
-        setTimeRemaining(timeRemaining - 1);
-      } else if (timeRemaining === 0) {
-        endGame();
-        if (timerInterval) clearInterval(timerInterval);
-      }
-    }, 1000);
-  };
-
-  const stopTimer = () => {
-    if (timerInterval) {
-      clearInterval(timerInterval);
-      timerInterval = null;
-    }
-  };
-
-  return { startTimer, stopTimer };
-};
+// Timer is now handled by GameEngine component to avoid conflicts

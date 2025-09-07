@@ -1,4 +1,5 @@
 // Game-specific type definitions
+// Hints type is defined in pokemonApiService to match generated hints
 import { GameHint } from "@/services/pokemonApiService";
 
 export interface GameSession {
@@ -72,12 +73,6 @@ export interface GameResult {
   streak: number;
   isNewRecord: boolean;
   achievements: Achievement[];
-}
-
-export interface GameHint {
-  type: "type" | "generation" | "ability" | "stat" | "evolution";
-  content: string;
-  cost: number;
 }
 
 export interface GamePowerUp {
