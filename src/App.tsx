@@ -10,6 +10,7 @@ import PokedexPage from "@/pages/PokedexPage";
 import LeaderboardPage from "@/pages/LeaderboardPage";
 import ProfilePage from "@/pages/ProfilePage";
 import NotFoundPage from "@/pages/NotFoundPage";
+import AuthCallbackPage from "@/pages/AuthCallbackPage";
 
 // Components
 import Navbar from "@/components/layout/Navbar";
@@ -40,6 +41,7 @@ function App() {
           <Route path="/pokedex" element={<PokedexPage />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/auth/callback" element={<AuthCallbackPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </main>

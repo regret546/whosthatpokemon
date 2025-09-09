@@ -45,7 +45,6 @@ const GameEngine: React.FC<GameEngineProps> = ({ onGameEnd }) => {
   const soundManagerRef = useRef<SoundManager | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const gameInitialized = useRef(false);
-  const startToastShown = useRef(false);
 
   useEffect(() => {
     // Initialize sound manager
@@ -185,7 +184,7 @@ const GameEngine: React.FC<GameEngineProps> = ({ onGameEnd }) => {
       }
       // Show correct answer in the time up message
       toast.error(
-        `⏰ Time's Up! The answer was ${capitalizeFirstLetter(correctAnswer)}.`
+        `⏰ Time is up, the Pokémon is ${capitalizeFirstLetter(correctAnswer)}.`
       );
     }
   };
@@ -382,10 +381,19 @@ const GameEngine: React.FC<GameEngineProps> = ({ onGameEnd }) => {
                 className="space-y-4"
               >
                 <div className="text-center">
-                  {selectedAnswer &&
-                  correctAnswer &&
-                  selectedAnswer.toLowerCase() ===
-                    correctAnswer.toLowerCase() ? (
+                  {selectedAnswer === "TIME_UP" ? (
+                    <motion.div
+                      initial={{ scale: 0.8 }}
+                      animate={{ scale: 1 }}
+                      className="text-orange-600 text-lg font-semibold"
+                    >
+                      ⏰ Time is up, the Pokémon is{" "}
+                      {capitalizeFirstLetter(correctAnswer)}
+                    </motion.div>
+                  ) : selectedAnswer &&
+                    correctAnswer &&
+                    selectedAnswer.toLowerCase() ===
+                      correctAnswer.toLowerCase() ? (
                     <motion.div
                       initial={{ scale: 0.8 }}
                       animate={{ scale: 1 }}
@@ -418,14 +426,22 @@ const GameEngine: React.FC<GameEngineProps> = ({ onGameEnd }) => {
             )}
 
             {/* Hint System */}
-            {!isRevealed && isGameActive && (
-              <HintDisplay
-                hints={availableHints}
-                usedHints={usedHints}
-                onUseHint={useHint}
-                disabled={!isGameActive || isRevealed}
-              />
-            )}
+            {!isRevealed &&
+              isGameActive &&
+              (isLoading ? (
+                // Skeleton placeholder for hint area while loading next Pokémon
+                <div className="rounded-lg border border-gray-200 p-4 bg-white">
+                  <div className="h-4 bg-gray-200 rounded animate-pulse w-24 mb-3"></div>
+                  <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              ) : (
+                <HintDisplay
+                  hints={availableHints}
+                  usedHints={usedHints}
+                  onUseHint={useHint}
+                  disabled={!isGameActive || isRevealed}
+                />
+              ))}
           </motion.div>
         </div>
 

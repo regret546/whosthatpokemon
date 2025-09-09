@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, User, Trophy, Home, Settings, Book } from "lucide-react";
+import { Menu, X, User, Trophy, Home, Settings, Book, Zap } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { clsx } from "clsx";
 
@@ -72,7 +72,14 @@ const Navbar: React.FC = () => {
           <div className="hidden md:flex items-center space-x-4">
             {isAuthenticated ? (
               <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-3">
+                  {/* Energy badge */}
+                  {typeof user?.pokeEnergy === "number" && (
+                    <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-yellow-100 text-yellow-800 text-xs font-semibold">
+                      <Zap className="w-4 h-4" />
+                      <span>{user.pokeEnergy}</span>
+                    </div>
+                  )}
                   <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
                     <User className="w-4 h-4 text-gray-600" />
                   </div>

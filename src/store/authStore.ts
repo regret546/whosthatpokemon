@@ -1,19 +1,28 @@
-import { create } from 'zustand'
-import { persist, createJSONStorage } from 'zustand/middleware'
-import { AuthState, User, LoginCredentials, RegisterCredentials, GuestLoginRequest } from '@/types'
-import { authService } from '@/services/authService'
-import toast from 'react-hot-toast'
+import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
+import {
+  AuthState,
+  User,
+  LoginCredentials,
+  RegisterCredentials,
+  GuestLoginRequest,
+} from "@/types";
+import { authService } from "@/services/authService";
+import toast from "react-hot-toast";
 
 interface AuthStore extends AuthState {
   // Actions
-  login: (credentials: LoginCredentials) => Promise<void>
-  register: (credentials: RegisterCredentials) => Promise<void>
-  guestLogin: (credentials: GuestLoginRequest) => Promise<void>
-  logout: () => void
-  refreshToken: () => Promise<void>
-  updateProfile: (updates: Partial<User>) => Promise<void>
-  initializeAuth: () => Promise<void>
-  clearError: () => void
+  login: (credentials: LoginCredentials) => Promise<void>;
+  register: (credentials: RegisterCredentials) => Promise<void>;
+  guestLogin: (credentials: GuestLoginRequest) => Promise<void>;
+  logout: () => void;
+  refreshToken: () => Promise<void>;
+  updateProfile: (updates: Partial<User>) => Promise<void>;
+  initializeAuth: () => Promise<void>;
+  clearError: () => void;
+  // New actions
+  loginWithGoogle: (code: string) => Promise<void>;
+  decrementEnergy: () => void;
 }
 
 export const useAuthStore = create<AuthStore>()(
@@ -27,154 +36,191 @@ export const useAuthStore = create<AuthStore>()(
 
       // Actions
       login: async (credentials: LoginCredentials) => {
-        set({ isLoading: true, error: null })
-        
+        set({ isLoading: true, error: null });
+
         try {
-          const response = await authService.login(credentials)
-          
+          const response = await authService.login(credentials);
+
           set({
             user: response.user,
             isAuthenticated: true,
             isLoading: false,
             error: null,
-          })
-          
-          toast.success(`Welcome back, ${response.user.username}!`)
+          });
+
+          toast.success(`Welcome back, ${response.user.username}!`);
         } catch (error: any) {
-          const errorMessage = error.message || 'Login failed. Please try again.'
+          const errorMessage =
+            error.message || "Login failed. Please try again.";
           set({
             user: null,
             isAuthenticated: false,
             isLoading: false,
             error: errorMessage,
-          })
-          toast.error(errorMessage)
+          });
+          toast.error(errorMessage);
         }
       },
 
       register: async (credentials: RegisterCredentials) => {
-        set({ isLoading: true, error: null })
-        
+        set({ isLoading: true, error: null });
+
         try {
-          const response = await authService.register(credentials)
-          
+          const response = await authService.register(credentials);
+
           set({
             user: response.user,
             isAuthenticated: true,
             isLoading: false,
             error: null,
-          })
-          
-          toast.success(`Welcome to Who's That Pokémon, ${response.user.username}!`)
+          });
+
+          toast.success(
+            `Welcome to Who's That Pokémon, ${response.user.username}!`
+          );
         } catch (error: any) {
-          const errorMessage = error.message || 'Registration failed. Please try again.'
+          const errorMessage =
+            error.message || "Registration failed. Please try again.";
           set({
             user: null,
             isAuthenticated: false,
             isLoading: false,
             error: errorMessage,
-          })
-          toast.error(errorMessage)
+          });
+          toast.error(errorMessage);
         }
       },
 
       guestLogin: async (credentials: GuestLoginRequest) => {
-        set({ isLoading: true, error: null })
-        
+        set({ isLoading: true, error: null });
+
         try {
-          const response = await authService.guestLogin(credentials)
-          
+          const response = await authService.guestLogin(credentials);
+
           set({
             user: response.user,
             isAuthenticated: true,
             isLoading: false,
             error: null,
-          })
-          
-          toast.success(`Welcome, ${response.user.username}!`)
+          });
+
+          toast.success(`Welcome, ${response.user.username}!`);
         } catch (error: any) {
-          const errorMessage = error.message || 'Guest login failed. Please try again.'
+          const errorMessage =
+            error.message || "Guest login failed. Please try again.";
           set({
             user: null,
             isAuthenticated: false,
             isLoading: false,
             error: errorMessage,
-          })
-          toast.error(errorMessage)
+          });
+          toast.error(errorMessage);
         }
       },
 
       logout: () => {
-        authService.logout()
+        authService.logout();
         set({
           user: null,
           isAuthenticated: false,
           error: null,
-        })
-        toast.success('Logged out successfully')
+        });
+        toast.success("Logged out successfully");
       },
 
       refreshToken: async () => {
         try {
-          const response = await authService.refreshToken()
-          
+          const response = await authService.refreshToken();
+
           set({
             user: response.user,
             isAuthenticated: true,
             error: null,
-          })
+          });
         } catch (error: any) {
           // If refresh fails, logout the user
-          get().logout()
+          get().logout();
         }
       },
 
-      updateProfile: async (updates: Partial<User>) => {
-        const { user } = get()
-        if (!user) return
-
-        set({ isLoading: true, error: null })
-        
+      // Handle Google OAuth callback
+      loginWithGoogle: async (code: string) => {
+        set({ isLoading: true, error: null });
         try {
-          const updatedUser = await authService.updateProfile(updates)
-          
+          const response = await authService.handleGoogleCallback(code);
+          set({
+            user: response.user,
+            isAuthenticated: true,
+            isLoading: false,
+            error: null,
+          });
+          toast.success(`Welcome, ${response.user.username}!`);
+        } catch (error: any) {
+          const errorMessage =
+            error.message || "Google login failed. Please try again.";
+          set({ isLoading: false, error: errorMessage });
+          toast.error(errorMessage);
+        }
+      },
+
+      // Optimistically decrement daily energy by 1 after each guess
+      decrementEnergy: () => {
+        const { user } = get();
+        if (!user) return;
+        const current =
+          typeof user.pokeEnergy === "number" ? user.pokeEnergy : undefined;
+        if (current === undefined) return;
+        const next = Math.max(0, current - 1);
+        set({ user: { ...user, pokeEnergy: next } as User });
+      },
+
+      updateProfile: async (updates: Partial<User>) => {
+        const { user } = get();
+        if (!user) return;
+
+        set({ isLoading: true, error: null });
+
+        try {
+          const updatedUser = await authService.updateProfile(updates);
+
           set({
             user: updatedUser,
             isLoading: false,
             error: null,
-          })
-          
-          toast.success('Profile updated successfully')
+          });
+
+          toast.success("Profile updated successfully");
         } catch (error: any) {
-          const errorMessage = error.message || 'Failed to update profile. Please try again.'
+          const errorMessage =
+            error.message || "Failed to update profile. Please try again.";
           set({
             isLoading: false,
             error: errorMessage,
-          })
-          toast.error(errorMessage)
+          });
+          toast.error(errorMessage);
         }
       },
 
       initializeAuth: async () => {
-        set({ isLoading: true })
-        
+        set({ isLoading: true });
+
         try {
-          const user = await authService.getCurrentUser()
-          
+          const user = await authService.getCurrentUser();
+
           if (user) {
             set({
               user,
               isAuthenticated: true,
               isLoading: false,
               error: null,
-            })
+            });
           } else {
             set({
               user: null,
               isAuthenticated: false,
               isLoading: false,
               error: null,
-            })
+            });
           }
         } catch (error: any) {
           set({
@@ -182,16 +228,16 @@ export const useAuthStore = create<AuthStore>()(
             isAuthenticated: false,
             isLoading: false,
             error: null,
-          })
+          });
         }
       },
 
       clearError: () => {
-        set({ error: null })
+        set({ error: null });
       },
     }),
     {
-      name: 'auth-storage',
+      name: "auth-storage",
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         user: state.user,
@@ -199,4 +245,4 @@ export const useAuthStore = create<AuthStore>()(
       }),
     }
   )
-)
+);

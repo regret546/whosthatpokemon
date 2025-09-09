@@ -7,6 +7,9 @@ export interface User {
   avatar?: string;
   createdAt: string;
   lastActive: string;
+  // Daily energy system
+  pokeEnergy?: number; // remaining energy today
+  energyResetAt?: string; // ISO date/time when energy was last reset
 }
 
 // Pokemon types

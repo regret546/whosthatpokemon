@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useGameStore } from "@/store/gameStore";
 import { Play, Users, Trophy, Zap, Star, ArrowRight } from "lucide-react";
+import toast from "react-hot-toast";
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -187,7 +188,36 @@ const LandingPage: React.FC = () => {
 
               <div className="text-center text-sm text-gray-500 mb-4">or</div>
 
-              <button className="w-full btn-secondary">
+              <button
+                className="w-full btn-secondary"
+                onClick={async () => {
+                  try {
+                    // Temporary hardcoded Google OAuth URL for testing
+                    const clientId =
+                      "744312224234-05vkgutkkka481toglpavo7h5lbkmrof.apps.googleusercontent.com";
+                    const redirectUri = "http://localhost:5173/auth/callback";
+                    const scope = "openid email profile";
+
+                    const url =
+                      `https://accounts.google.com/o/oauth2/v2/auth?` +
+                      `client_id=${clientId}&` +
+                      `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+                      `response_type=code&` +
+                      `scope=${encodeURIComponent(scope)}&` +
+                      `access_type=offline&` +
+                      `prompt=consent`;
+
+                    console.log("Generated Google OAuth URL:", url);
+                    window.location.href = url;
+                  } catch (e) {
+                    console.error("Failed to start Google login", e);
+                    const msg =
+                      (e as any)?.message ||
+                      "Unable to start Google sign-in. Please check the server connection.";
+                    toast.error(msg);
+                  }
+                }}
+              >
                 <svg
                   className="inline-block mr-2"
                   width="20"

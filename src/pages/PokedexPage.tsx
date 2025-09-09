@@ -98,7 +98,7 @@ const PokedexPage: React.FC = () => {
   const getAllPokemonData = async () => {
     try {
       const res = await axios.get(
-        "https://pokeapi.co/api/v2/pokemon?limit=898"
+        "https://pokeapi.co/api/v2/pokemon?limit=1008"
       );
       const pokemons = res.data.results;
 
@@ -293,11 +293,21 @@ const PokedexPage: React.FC = () => {
       }
 
       debounceTimer.current = setTimeout(() => {
-        if (value !== "") {
+        const v = value.trim();
+        if (v !== "") {
           setSearchActive(true);
-          const searchResults = allPokemons.filter((pokemon) =>
-            pokemon.name.toLowerCase().includes(value.toLowerCase())
-          );
+          let searchResults: Pokemon[] = [];
+
+          // If numeric, search by Pokémon ID; else by name
+          const num = Number(v);
+          if (!isNaN(num) && Number.isInteger(num)) {
+            searchResults = allPokemons.filter((p) => p.id === num);
+          } else {
+            searchResults = allPokemons.filter((pokemon) =>
+              pokemon.name.toLowerCase().includes(v.toLowerCase())
+            );
+          }
+
           setCurrentPokemons(searchResults);
           setPokemonIndex(0);
         } else {
@@ -350,7 +360,7 @@ const PokedexPage: React.FC = () => {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="text"
-              placeholder="Search your pokemon"
+              placeholder="Search by name or number"
               disabled
               className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg bg-gray-50 cursor-not-allowed"
             />
@@ -487,6 +497,7 @@ const PokedexPage: React.FC = () => {
                             className="px-1.5 py-0.5 rounded-full text-xs font-semibold text-white uppercase pokedex-font"
                             style={{
                               backgroundColor: typeColors[type] || "#68A090",
+
                               fontSize: "10px",
                             }}
                           >

@@ -10,6 +10,7 @@ import {
 } from "@/types";
 import { GameHint } from "@/services/pokemonApiService";
 import { gameService } from "@/services/gameService";
+import { useAuthStore } from "@/store/authStore";
 import type { StartGameRequest } from "@/types";
 import { pokemonService } from "@/services/pokemonService";
 import { gameLogicService, GameSession } from "@/services/gameLogicService";
@@ -165,11 +166,24 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const { sessionId, timeRemaining, startTime } = get();
     if (!sessionId || !startTime) return;
 
+    // Check daily Poké Energy before allowing a guess
+    const authState = useAuthStore.getState();
+    const energy = authState.user?.pokeEnergy;
+    if (typeof energy === "number" && energy <= 0) {
+      toast.error(
+        "You're out of Poké Energy for today. Please come back tomorrow!"
+      );
+      return;
+    }
+
     set({ selectedAnswer: guess, isLoading: true });
 
     try {
       // Use local game logic service for immediate response
       const result = await gameLogicService.submitGuess(sessionId, guess);
+
+      // Optimistically decrement energy locally (backend should enforce too)
+      authState.decrementEnergy();
 
       set({
         isRevealed: true,
@@ -296,6 +310,18 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   setTimeRemaining: (time: number) => {
+    // Safety: if time hits 0, auto-reveal to avoid any missed interval callbacks
+    if (time <= 0) {
+      set((state) => ({
+        timeRemaining: 0,
+        isRevealed: state.isGameActive ? true : state.isRevealed,
+        selectedAnswer:
+          state.isGameActive && !state.isRevealed
+            ? "TIME_UP"
+            : state.selectedAnswer,
+      }));
+      return;
+    }
     set({ timeRemaining: time });
   },
 
