@@ -108,7 +108,7 @@ class AuthService
     {
         try {
             $decoded = JWT::decode($refreshToken, new Key($this->jwtSecret, 'HS256'));
-            
+
             if ($decoded->type !== 'refresh') {
                 return null;
             }
@@ -131,7 +131,7 @@ class AuthService
     {
         try {
             $decoded = JWT::decode($token, new Key($this->jwtSecret, 'HS256'));
-            
+
             if ($decoded->type !== 'access') {
                 return null;
             }
@@ -150,6 +150,68 @@ class AuthService
     {
         // In a more sophisticated implementation, you might want to blacklist the token
         // For now, we'll just return success
+    }
+
+    /**
+     * Login or register a user using Google profile info.
+     * @param array $googleInfo expected keys: sub, email, name, picture
+     */
+    public function loginWithGoogleProfile(array $googleInfo): array
+    {
+        $googleId = $googleInfo['sub'] ?? null;
+        if (!$googleId) {
+            throw new \InvalidArgumentException('Missing Google subject (sub)');
+        }
+        $email = $googleInfo['email'] ?? null;
+        $name = $googleInfo['name'] ?? null;
+        $avatar = $googleInfo['picture'] ?? null;
+
+        $this->db->beginTransaction();
+        try {
+            // Try by google_id first
+            $stmt = $this->db->prepare("SELECT * FROM users WHERE google_id = ? LIMIT 1");
+            $stmt->execute([$googleId]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($user) {
+                // Update profile details if changed
+                $stmt = $this->db->prepare("UPDATE users SET username = COALESCE(?, username), avatar_url = COALESCE(?, avatar_url), last_active_at = NOW() WHERE id = ?");
+                $stmt->execute([$name, $avatar, $user['id']]);
+            } else {
+                // If not linked, match by email if available
+                if ($email) {
+                    $stmt = $this->db->prepare("SELECT * FROM users WHERE email = ? LIMIT 1");
+                    $stmt->execute([$email]);
+                    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+                    if ($user) {
+                        $stmt = $this->db->prepare("UPDATE users SET google_id = ?, username = COALESCE(?, username), avatar_url = COALESCE(?, avatar_url), is_guest = 0, is_verified = 1, last_active_at = NOW() WHERE id = ?");
+                        $stmt->execute([$googleId, $name, $avatar, $user['id']]);
+                    }
+                }
+
+                if (!$user) {
+                    // Create new user
+                    $userId = $this->generateUuid();
+                    $username = $name ?: ($email ? explode('@', $email)[0] : ('trainer_' . substr($userId, 0, 6)));
+                    $stmt = $this->db->prepare("INSERT INTO users (id, google_id, username, email, is_guest, is_verified, avatar_url, last_active_at) VALUES (?, ?, ?, ?, 0, 1, ?, NOW())");
+                    $stmt->execute([$userId, $googleId, $username, $email, $avatar]);
+                    $stmt = $this->db->prepare("SELECT * FROM users WHERE id = ?");
+                    $stmt->execute([$userId]);
+                    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+                } else {
+                    // Reload after linking by email
+                    $stmt = $this->db->prepare("SELECT * FROM users WHERE id = ?");
+                    $stmt->execute([$user['id']]);
+                    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+                }
+            }
+
+            $this->db->commit();
+            return $this->generateTokenResponse($user);
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            throw new \Exception('Google login failed: ' . $e->getMessage());
+        }
     }
 
     public function updateProfile(string $userId, array $data): ?array
@@ -172,7 +234,7 @@ class AuthService
 
             $values[] = $userId;
             $sql = "UPDATE users SET " . implode(', ', $updateFields) . " WHERE id = ?";
-            
+
             $stmt = $this->db->prepare($sql);
             $stmt->execute($values);
 
@@ -187,7 +249,7 @@ class AuthService
     private function generateTokenResponse(array $user): array
     {
         $now = time();
-        
+
         $accessToken = JWT::encode([
             'user_id' => $user['id'],
             'type' => 'access',
@@ -214,11 +276,14 @@ class AuthService
     {
         return sprintf(
             '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-            mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+            mt_rand(0, 0xffff),
+            mt_rand(0, 0xffff),
             mt_rand(0, 0xffff),
             mt_rand(0, 0x0fff) | 0x4000,
             mt_rand(0, 0x3fff) | 0x8000,
-            mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+            mt_rand(0, 0xffff),
+            mt_rand(0, 0xffff),
+            mt_rand(0, 0xffff)
         );
     }
 

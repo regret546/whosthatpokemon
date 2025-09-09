@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Services\AuthService;
+use App\Services\GoogleOAuthService;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
@@ -20,10 +21,10 @@ class AuthController extends BaseController
     public function login(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
         $data = $this->getJsonBody($request);
-        
+
         try {
             $result = $this->authService->login($data['email'] ?? '', $data['password'] ?? '');
-            
+
             if (!$result) {
                 return $this->errorResponse($response, 'Invalid credentials', 401);
             }
@@ -37,14 +38,14 @@ class AuthController extends BaseController
     public function register(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
         $data = $this->getJsonBody($request);
-        
+
         try {
             $result = $this->authService->register(
                 $data['username'] ?? '',
                 $data['email'] ?? '',
                 $data['password'] ?? ''
             );
-            
+
             if (!$result) {
                 return $this->errorResponse($response, 'Registration failed', 400);
             }
@@ -58,10 +59,10 @@ class AuthController extends BaseController
     public function guestLogin(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
         $data = $this->getJsonBody($request);
-        
+
         try {
             $result = $this->authService->guestLogin($data['username'] ?? '');
-            
+
             if (!$result) {
                 return $this->errorResponse($response, 'Guest login failed', 400);
             }
@@ -75,10 +76,10 @@ class AuthController extends BaseController
     public function refreshToken(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
         $data = $this->getJsonBody($request);
-        
+
         try {
             $result = $this->authService->refreshToken($data['refreshToken'] ?? '');
-            
+
             if (!$result) {
                 return $this->errorResponse($response, 'Token refresh failed', 401);
             }
@@ -102,7 +103,7 @@ class AuthController extends BaseController
     public function getCurrentUser(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
         $user = $this->getCurrentUser($request);
-        
+
         if (!$user) {
             return $this->errorResponse($response, 'User not found', 404);
         }
@@ -114,14 +115,14 @@ class AuthController extends BaseController
     {
         $user = $this->getCurrentUser($request);
         $data = $this->getJsonBody($request);
-        
+
         if (!$user) {
             return $this->errorResponse($response, 'User not found', 404);
         }
 
         try {
             $result = $this->authService->updateProfile($user['id'], $data);
-            
+
             if (!$result) {
                 return $this->errorResponse($response, 'Profile update failed', 400);
             }
@@ -130,5 +131,36 @@ class AuthController extends BaseController
         } catch (\Exception $e) {
             return $this->errorResponse($response, $e->getMessage(), 500);
         }
+
+    public function googleUrl(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        try {
+            $oauth = new GoogleOAuthService();
+            $url = $oauth->getAuthUrl();
+            return $this->successResponse($response, ['url' => $url], 'OK');
+        } catch (\Throwable $e) {
+            return $this->errorResponse($response, $e->getMessage(), 500);
+        }
     }
+
+    public function googleCallback(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        $data = $this->getJsonBody($request);
+        $code = $data['code'] ?? null;
+        if (!$code) {
+            return $this->errorResponse($response, 'Missing authorization code', 400);
+        }
+
+        try {
+            $oauth = new GoogleOAuthService();
+            $tokens = $oauth->exchangeCode($code);
+            $info = $oauth->getUserInfo($tokens['access_token']);
+
+            $result = $this->authService->loginWithGoogleProfile($info);
+            return $this->successResponse($response, $result, 'Google login successful');
+        } catch (\Throwable $e) {
+            return $this->errorResponse($response, $e->getMessage(), 400);
+        }
+    }
+
 }

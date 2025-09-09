@@ -21,11 +21,28 @@ CREATE TABLE users (
     last_active_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
+    -- Daily energy system
+    poke_energy INT NOT NULL DEFAULT 20,
+    energy_reset_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
     INDEX idx_google_id (google_id),
     INDEX idx_email (email),
     INDEX idx_username (username),
     INDEX idx_created_at (created_at)
+);
+
+-- Refresh tokens table (for session management)
+CREATE TABLE refresh_tokens (
+    id CHAR(36) PRIMARY KEY,
+    user_id CHAR(36) NOT NULL,
+    token VARCHAR(255) NOT NULL UNIQUE,
+    revoked BOOLEAN NOT NULL DEFAULT FALSE,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_id (user_id),
+    INDEX idx_expires_at (expires_at)
 );
 
 -- Game sessions table
@@ -44,7 +61,7 @@ CREATE TABLE game_sessions (
     is_completed BOOLEAN DEFAULT FALSE,
     started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     completed_at TIMESTAMP NULL,
-    
+
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     INDEX idx_user_id (user_id),
     INDEX idx_pokemon_id (pokemon_id),
@@ -69,7 +86,7 @@ CREATE TABLE leaderboards (
     period_end DATE NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
+
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     UNIQUE KEY unique_user_period (user_id, period, period_start),
     INDEX idx_period (period),
@@ -91,7 +108,7 @@ CREATE TABLE achievements (
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
+
     INDEX idx_category (category),
     INDEX idx_rarity (rarity),
     INDEX idx_is_active (is_active)
@@ -108,7 +125,7 @@ CREATE TABLE user_achievements (
     unlocked_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
+
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (achievement_id) REFERENCES achievements(id) ON DELETE CASCADE,
     UNIQUE KEY unique_user_achievement (user_id, achievement_id),
@@ -134,7 +151,7 @@ CREATE TABLE pokemon_cache (
     cry_url VARCHAR(500) NULL,
     cached_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     expires_at TIMESTAMP NOT NULL,
-    
+
     INDEX idx_name (name),
     INDEX idx_generation (generation),
     INDEX idx_is_legendary (is_legendary),
@@ -149,7 +166,7 @@ CREATE TABLE user_settings (
     settings JSON NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
+
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     UNIQUE KEY unique_user_settings (user_id)
 );
@@ -168,7 +185,7 @@ CREATE TABLE game_challenges (
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
+
     INDEX idx_type (type),
     INDEX idx_difficulty (difficulty),
     INDEX idx_start_date (start_date),
@@ -187,7 +204,7 @@ CREATE TABLE user_challenge_progress (
     completed_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
+
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (challenge_id) REFERENCES game_challenges(id) ON DELETE CASCADE,
     UNIQUE KEY unique_user_challenge (user_id, challenge_id),
@@ -211,7 +228,7 @@ CREATE TABLE tournaments (
     end_date TIMESTAMP NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
+
     INDEX idx_type (type),
     INDEX idx_status (status),
     INDEX idx_start_date (start_date),
@@ -226,7 +243,7 @@ CREATE TABLE tournament_participants (
     score INT DEFAULT 0,
     `rank` INT NULL,
     joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    
+
     FOREIGN KEY (tournament_id) REFERENCES tournaments(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     UNIQUE KEY unique_tournament_user (tournament_id, user_id),
@@ -245,7 +262,7 @@ CREATE TABLE system_logs (
     ip_address VARCHAR(45) NULL,
     user_agent TEXT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    
+
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
     INDEX idx_level (level),
     INDEX idx_user_id (user_id),
@@ -262,7 +279,7 @@ INSERT INTO achievements (id, name, description, icon, category, rarity, require
 
 -- Create views for common queries
 CREATE VIEW user_stats AS
-SELECT 
+SELECT
     u.id,
     u.username,
     u.is_guest,
