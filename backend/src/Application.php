@@ -63,7 +63,7 @@ class Application
                 $group->get('/google/url', [\App\Controllers\AuthController::class, 'googleUrl']);
                 $group->post('/google/callback', [\App\Controllers\AuthController::class, 'googleCallback']);
                 // Authenticated user routes
-                $group->get('/me', [\App\Controllers\AuthController::class, 'getCurrentUser'])->add(new AuthMiddleware());
+                $group->get('/me', [\App\Controllers\AuthController::class, 'me'])->add(new AuthMiddleware());
                 $group->patch('/profile', [\App\Controllers\AuthController::class, 'updateProfile'])->add(new AuthMiddleware());
             });
 

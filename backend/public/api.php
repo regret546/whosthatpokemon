@@ -9,8 +9,9 @@ use App\Services\GoogleOAuthService;
 
 // Set CORS headers
 header('Access-Control-Allow-Origin: http://localhost:5173');
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Request-ID, Accept');
+header('Access-Control-Allow-Credentials: true');
 header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -34,6 +35,9 @@ try {
         $input = json_decode(file_get_contents('php://input'), true);
         $code = $input['code'] ?? null;
         
+        error_log("Google OAuth Callback - Received code: " . ($code ? substr($code, 0, 20) . '...' : 'NULL'));
+        error_log("Google OAuth Callback - Full input: " . json_encode($input));
+        
         if (!$code) {
             throw new Exception('Missing authorization code');
         }
@@ -42,11 +46,23 @@ try {
         $tokens = $oauth->exchangeCode($code);
         $info = $oauth->getUserInfo($tokens['access_token']);
         
-        // For now, just return the user info
+        // Format user data for frontend
+        $user = [
+            'id' => $info['sub'] ?? 'google_' . time(),
+            'username' => $info['name'] ?? $info['email'] ?? 'Google User',
+            'email' => $info['email'] ?? '',
+            'isGuest' => false,
+            'avatar' => $info['picture'] ?? null,
+            'createdAt' => date('c'),
+            'lastActive' => date('c'),
+            'pokeEnergy' => 10,
+            'isVerified' => true
+        ];
+        
         echo json_encode([
             'success' => true,
             'data' => [
-                'user' => $info,
+                'user' => $user,
                 'token' => 'dummy-token',
                 'refreshToken' => 'dummy-refresh-token'
             ],
@@ -61,8 +77,11 @@ try {
     }
 } catch (Exception $e) {
     http_response_code(500);
+    error_log("API Error: " . $e->getMessage());
+    error_log("Stack trace: " . $e->getTraceAsString());
     echo json_encode([
         'success' => false,
-        'error' => $e->getMessage()
+        'error' => $e->getMessage(),
+        'details' => $e->getTraceAsString()
     ]);
 }

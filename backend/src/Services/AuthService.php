@@ -27,7 +27,7 @@ class AuthService
         try {
             $stmt = $this->db->prepare("
                 SELECT id, username, email, password_hash, is_guest, avatar_url, is_verified
-                FROM users 
+                FROM users
                 WHERE email = ? AND is_guest = 0
             ");
             $stmt->execute([$email]);
@@ -206,12 +206,36 @@ class AuthService
                 }
             }
 
+            // Reset daily energy if needed
+            $user = $this->resetDailyEnergyIfNeeded($user);
+
             $this->db->commit();
             return $this->generateTokenResponse($user);
         } catch (\Throwable $e) {
             $this->db->rollBack();
             throw new \Exception('Google login failed: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Reset user's daily energy to 20 if it's a new day
+     */
+    private function resetDailyEnergyIfNeeded(array $user): array
+    {
+        $now = new \DateTime();
+        $resetAt = new \DateTime($user['energy_reset_at'] ?? 'now');
+
+        // If it's been more than 24 hours since last reset, give them fresh energy
+        if ($now->diff($resetAt)->days >= 1) {
+            $stmt = $this->db->prepare("UPDATE users SET poke_energy = 20, energy_reset_at = NOW() WHERE id = ?");
+            $stmt->execute([$user['id']]);
+
+            // Update the user array to reflect the change
+            $user['poke_energy'] = 20;
+            $user['energy_reset_at'] = $now->format('Y-m-d H:i:s');
+        }
+
+        return $user;
     }
 
     public function updateProfile(string $userId, array $data): ?array
@@ -248,28 +272,81 @@ class AuthService
 
     private function generateTokenResponse(array $user): array
     {
+        // Always reload user to ensure latest fields and reset daily energy if needed
+        $freshUser = $this->ensureDailyEnergyAndFetch($user['id']);
+
         $now = time();
 
         $accessToken = JWT::encode([
-            'user_id' => $user['id'],
+            'user_id' => $freshUser['id'],
             'type' => 'access',
             'iat' => $now,
             'exp' => $now + $this->jwtExpiration
         ], $this->jwtSecret, 'HS256');
 
         $refreshToken = JWT::encode([
-            'user_id' => $user['id'],
+            'user_id' => $freshUser['id'],
             'type' => 'refresh',
             'iat' => $now,
             'exp' => $now + (7 * 24 * 60 * 60) // 7 days
         ], $this->jwtSecret, 'HS256');
 
         return [
-            'user' => $user,
+            'user' => $this->formatUserRow($freshUser),
             'token' => $accessToken,
             'refreshToken' => $refreshToken,
             'expiresIn' => $this->jwtExpiration
         ];
+    }
+
+    private function ensureDailyEnergyAndFetch(string $userId): array
+    {
+        // Reset energy to 20 once per calendar day
+        $stmt = $this->db->prepare("SELECT poke_energy, energy_reset_at FROM users WHERE id = ?");
+        $stmt->execute([$userId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($row) {
+            $resetAt = $row['energy_reset_at'] ?? null;
+            $needsReset = false;
+            if ($resetAt === null) {
+                $needsReset = true;
+            } else {
+                $resetDate = (new \DateTime($resetAt))->format('Y-m-d');
+                $today = (new \DateTime('now'))->format('Y-m-d');
+                if ($resetDate !== $today) {
+                    $needsReset = true;
+                }
+            }
+            if ($needsReset) {
+                $stmt = $this->db->prepare("UPDATE users SET poke_energy = 20, energy_reset_at = NOW() WHERE id = ?");
+                $stmt->execute([$userId]);
+            }
+        }
+        $stmt = $this->db->prepare("SELECT * FROM users WHERE id = ?");
+        $stmt->execute([$userId]);
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    private function formatUserRow(array $row): array
+    {
+        return [
+            'id' => $row['id'] ?? null,
+            'username' => $row['username'] ?? null,
+            'email' => $row['email'] ?? null,
+            'isGuest' => (bool)($row['is_guest'] ?? false),
+            'avatar' => $row['avatar_url'] ?? null,
+            'createdAt' => $row['created_at'] ?? null,
+            'lastActive' => $row['last_active_at'] ?? null,
+            'pokeEnergy' => isset($row['poke_energy']) ? (int)$row['poke_energy'] : null,
+            'energyResetAt' => $row['energy_reset_at'] ?? null,
+        ];
+    }
+
+
+    public function getUserWithDailyEnergy(string $userId): array
+    {
+        $fresh = $this->ensureDailyEnergyAndFetch($userId);
+        return $this->formatUserRow($fresh);
     }
 
     private function generateUuid(): string

@@ -102,7 +102,14 @@ class GoogleOAuthService
         curl_close($ch);
         $data = json_decode($result, true);
         if ($status >= 400) {
-            throw new \RuntimeException('Google token response error: ' . ($data['error'] ?? 'unknown'));
+            $error = $data['error'] ?? 'unknown';
+            $errorDescription = $data['error_description'] ?? '';
+            
+            if ($error === 'invalid_grant') {
+                throw new \RuntimeException('Authorization code has already been used or has expired. Please try logging in again.');
+            }
+            
+            throw new \RuntimeException('Google token response error: ' . $error . ($errorDescription ? ' - ' . $errorDescription : ''));
         }
         return $data ?? [];
     }

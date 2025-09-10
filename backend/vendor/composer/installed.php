@@ -3,7 +3,7 @@
         'name' => 'whosthatpokemon/backend',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => 'd9596f5cc46148d6e26fe8d00af8cdee23b0c896',
+        'reference' => 'e79dfd64b42fba868a5ddf8f7d3d2ac011849ad6',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -550,7 +550,7 @@
         'whosthatpokemon/backend' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => 'd9596f5cc46148d6e26fe8d00af8cdee23b0c896',
+            'reference' => 'e79dfd64b42fba868a5ddf8f7d3d2ac011849ad6',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

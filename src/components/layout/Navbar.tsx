@@ -14,7 +14,10 @@ const Navbar: React.FC = () => {
     { name: "Game", href: "/game", icon: Trophy },
     { name: "Pokédex", href: "/pokedex", icon: Book },
     { name: "Leaderboard", href: "/leaderboard", icon: Trophy },
-    { name: "Profile", href: "/profile", icon: User },
+    // Only show Profile when authenticated
+    ...(isAuthenticated
+      ? [{ name: "Profile", href: "/profile", icon: User }]
+      : []),
   ];
 
   const isActive = (path: string) => location.pathname === path;
@@ -80,8 +83,16 @@ const Navbar: React.FC = () => {
                       <span>{user.pokeEnergy}</span>
                     </div>
                   )}
-                  <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                    <User className="w-4 h-4 text-gray-600" />
+                  <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+                    {user?.avatar ? (
+                      <img
+                        src={user.avatar}
+                        alt={user.username}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <User className="w-4 h-4 text-gray-600" />
+                    )}
                   </div>
                   <span className="text-pokemon-gray font-medium">
                     {user?.username}
@@ -96,17 +107,8 @@ const Navbar: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <div className="flex items-center space-x-4">
-                <Link
-                  to="/login"
-                  className="text-gray-600 hover:text-pokemon-blue transition-colors"
-                >
-                  Login
-                </Link>
-                <Link to="/register" className="btn-primary">
-                  Sign Up
-                </Link>
-              </div>
+              // When not authenticated, no login/register in the navbar (Google login is on Landing page)
+              <div className="flex items-center space-x-4" />
             )}
           </div>
 
@@ -155,8 +157,16 @@ const Navbar: React.FC = () => {
               {isAuthenticated ? (
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2 px-3 py-2">
-                    <div className="w-8 h-8 bg-pokemon-yellow rounded-full flex items-center justify-center">
-                      <User className="w-4 h-4 text-pokemon-gray" />
+                    <div className="w-8 h-8 bg-pokemon-yellow rounded-full flex items-center justify-center overflow-hidden">
+                      {user?.avatar ? (
+                        <img
+                          src={user.avatar}
+                          alt={user.username}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <User className="w-4 h-4 text-pokemon-gray" />
+                      )}
                     </div>
                     <span className="text-pokemon-gray font-medium">
                       {user?.username}
@@ -173,22 +183,8 @@ const Navbar: React.FC = () => {
                   </button>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  <Link
-                    to="/login"
-                    onClick={() => setIsMenuOpen(false)}
-                    className="block px-3 py-2 text-gray-600 hover:text-pokemon-gray transition-colors"
-                  >
-                    Login
-                  </Link>
-                  <Link
-                    to="/register"
-                    onClick={() => setIsMenuOpen(false)}
-                    className="block bg-pokemon-blue text-white px-3 py-2 rounded-md font-medium hover:bg-blue-600 transition-colors"
-                  >
-                    Sign Up
-                  </Link>
-                </div>
+                // No login/signup entries in mobile menu when not authenticated
+                <div className="space-y-2" />
               )}
             </div>
           </div>

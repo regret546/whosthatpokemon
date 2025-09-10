@@ -145,6 +145,14 @@ export const useAuthStore = create<AuthStore>()(
 
       // Handle Google OAuth callback
       loginWithGoogle: async (code: string) => {
+        const { isLoading } = get();
+        if (isLoading) {
+          console.log(
+            "AuthStore: Google login already in progress, skipping duplicate call"
+          );
+          return;
+        }
+
         set({ isLoading: true, error: null });
         try {
           const response = await authService.handleGoogleCallback(code);
@@ -160,6 +168,7 @@ export const useAuthStore = create<AuthStore>()(
             error.message || "Google login failed. Please try again.";
           set({ isLoading: false, error: errorMessage });
           toast.error(errorMessage);
+          throw error; // Re-throw so AuthCallbackPage can handle it
         }
       },
 
